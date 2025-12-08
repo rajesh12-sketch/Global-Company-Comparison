@@ -59,7 +59,15 @@ export interface AnalysisResult {
   sourceUrls?: string[]; // For grounding
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export enum AppState {
+  SIGN_IN,
+  SIGN_UP,
   LANDING,
   LOADING,
   DASHBOARD,

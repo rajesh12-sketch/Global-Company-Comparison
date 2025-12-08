@@ -1,15 +1,30 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { analyzeCompany } from './services/geminiService';
+import { authService } from './services/authService';
 import { Dashboard } from './components/Dashboard';
-import { AppState, AnalysisResult } from './types';
+import { Auth } from './components/Auth';
+import { AppState, AnalysisResult, User } from './types';
 import { SearchIcon, GlobeIcon } from './components/Icons';
 
 export default function App() {
   const [query, setQuery] = useState('');
-  const [activeQuery, setActiveQuery] = useState(''); // Tracks the company currently being displayed
-  const [state, setState] = useState<AppState>(AppState.LANDING);
+  const [activeQuery, setActiveQuery] = useState('');
+  // Initialize state based on session check, defaulting to SIGN_IN temporarily until effect runs
+  const [state, setState] = useState<AppState>(AppState.SIGN_IN);
+  const [user, setUser] = useState<User | null>(null);
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+      setState(AppState.LANDING);
+    } else {
+      setState(AppState.SIGN_IN);
+    }
+  }, []);
 
   const performAnalysis = async (companyName: string) => {
     setState(AppState.LOADING);
@@ -19,7 +34,7 @@ export default function App() {
       const result = await analyzeCompany(companyName);
       setData(result);
       setState(AppState.DASHBOARD);
-      setActiveQuery(companyName); // Update active query on success
+      setActiveQuery(companyName);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to analyze company. Ensure your API Key is valid.");
@@ -33,20 +48,44 @@ export default function App() {
     await performAnalysis(query);
   }, [query]);
 
-  // Re-run analysis on the currently active company
   const handleRefresh = useCallback(async () => {
     if (activeQuery) {
       await performAnalysis(activeQuery);
     }
   }, [activeQuery]);
 
-  // Handle Enter key in Search Inputs
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch();
     }
   };
 
+  const handleSignOut = () => {
+    authService.signOut();
+    setUser(null);
+    setData(null);
+    setQuery('');
+    setActiveQuery('');
+    setState(AppState.SIGN_IN);
+  };
+
+  const handleAuthSuccess = (loggedInUser: User) => {
+    setUser(loggedInUser);
+    setState(AppState.LANDING);
+  };
+
+  // If in Auth states, render only the Auth component
+  if (state === AppState.SIGN_IN || state === AppState.SIGN_UP) {
+    return (
+      <Auth 
+        state={state} 
+        onSwitchMode={setState} 
+        onSuccess={handleAuthSuccess} 
+      />
+    );
+  }
+
+  // Main App Layout for Authenticated Users
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 flex flex-col md:flex-row font-sans">
       
@@ -64,7 +103,7 @@ export default function App() {
             Home
           </button>
           <div className="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Workspace</div>
-          <button className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${state === AppState.DASHBOARD ? 'bg-primary-600/10 text-primary-400' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}>
+          <button onClick={() => state === AppState.DASHBOARD && handleRefresh()} className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${state === AppState.DASHBOARD ? 'bg-primary-600/10 text-primary-400' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}>
             Live Dashboard
           </button>
           <button disabled className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-not-allowed">
@@ -76,10 +115,21 @@ export default function App() {
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-            <div className="bg-slate-900 rounded p-3 text-xs text-slate-500 border border-slate-800">
-                <p>Status: <span className="text-emerald-500 font-semibold">Online</span></p>
-                <p>Model: <span className="text-primary-400">Gemini 2.5 Flash</span></p>
-            </div>
+            {user && (
+              <div className="mb-4 px-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  <span className="text-xs font-medium text-white">{user.name}</span>
+                </div>
+                <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
+              </div>
+            )}
+            <button 
+              onClick={handleSignOut}
+              className="w-full py-2 px-3 bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-400 hover:text-white rounded text-xs transition-colors"
+            >
+              Sign Out
+            </button>
         </div>
       </aside>
 
@@ -112,7 +162,11 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4">
-             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-500 to-indigo-600 border border-slate-700 shadow-inner"></div>
+             {/* Mobile Sign Out */}
+             <button onClick={handleSignOut} className="md:hidden text-xs text-slate-400 hover:text-white">Sign Out</button>
+             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-500 to-indigo-600 border border-slate-700 shadow-inner flex items-center justify-center text-xs font-bold text-white">
+                {user?.name.charAt(0).toUpperCase()}
+             </div>
           </div>
         </header>
 

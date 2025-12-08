@@ -100,3 +100,38 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({ data, type }) =>
     </div>
   );
 };
+
+export const Sparkline: React.FC<{ trend?: 'up' | 'down' | 'stable' }> = ({ trend }) => {
+  const data = React.useMemo(() => {
+    let current = 50;
+    // Generate synthetic history based on trend
+    return Array.from({ length: 20 }).map((_, i) => {
+       const noise = Math.random() * 10 - 5;
+       let drift = 0;
+       if (trend === 'up') drift = 3;
+       if (trend === 'down') drift = -3;
+       
+       current += drift + noise;
+       return { value: current };
+    });
+  }, [trend]);
+
+  const color = trend === 'up' ? '#34d399' : trend === 'down' ? '#f87171' : '#94a3b8';
+
+  return (
+    <div className="h-8 w-24">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <Line 
+            type="monotone" 
+            dataKey="value" 
+            stroke={color} 
+            strokeWidth={2} 
+            dot={false} 
+            isAnimationActive={true} 
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};

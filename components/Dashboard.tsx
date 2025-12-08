@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AnalysisResult, FinancialMetric, NewsItem, Competitor } from '../types';
-import { FinancialChart } from './Charts';
+import { FinancialChart, Sparkline } from './Charts';
 import { ArrowTrendingUp, ArrowTrendingDown, DocumentTextIcon, GlobeIcon, BoltIcon, ArrowPathIcon, ArrowDownTrayIcon, MinusIcon } from './Icons';
 
 interface DashboardProps {
@@ -254,40 +254,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
                     <div key={i} className="p-4 hover:bg-slate-700/30 transition-colors">
                         <div className="flex justify-between items-center mb-1">
                             <span className="font-semibold text-slate-200">{comp.name}</span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">{comp.marketShare} Share</span>
-                                {comp.marketShareTrend === 'up' && (
-                                    <div className="bg-emerald-500/10 p-0.5 rounded" title="Market share increasing">
-                                        <ArrowTrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                                    </div>
-                                )}
-                                {comp.marketShareTrend === 'down' && (
-                                    <div className="bg-red-500/10 p-0.5 rounded" title="Market share decreasing">
-                                        <ArrowTrendingDown className="w-3.5 h-3.5 text-red-400" />
-                                    </div>
-                                )}
-                                {comp.marketShareTrend === 'stable' && (
-                                    <div className="bg-slate-600/20 p-0.5 rounded" title="Market share stable">
-                                        <MinusIcon className="w-3.5 h-3.5 text-slate-400" />
-                                    </div>
-                                )}
+                            <div className="flex items-center gap-3">
+                                {/* Sparkline */}
+                                <div title={`Market Share Trend: ${comp.marketShareTrend}`}>
+                                    <Sparkline trend={comp.marketShareTrend} />
+                                </div>
+                                <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                  {comp.marketShare} Share
+                                </span>
                             </div>
                         </div>
-                        <p className="text-xs text-slate-400 mb-2">{comp.advantage}</p>
+                        <p className="text-xs text-slate-400 mb-3">{comp.advantage}</p>
                         
-                        {/* New Competitor Fields */}
-                        <div className="flex flex-wrap gap-2">
-                            {comp.recentFunding && (
-                                <span className="text-[10px] bg-emerald-900/30 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-900/50">
-                                    Funding: {comp.recentFunding}
-                                </span>
-                            )}
-                            {comp.lastEarningsReport && (
-                                <span className="text-[10px] bg-blue-900/30 text-blue-400 px-1.5 py-0.5 rounded border border-blue-900/50">
-                                    Earnings: {comp.lastEarningsReport}
-                                </span>
-                            )}
-                        </div>
+                        {/* Competitor Fields (Funding & Earnings) */}
+                        {(comp.recentFunding || comp.lastEarningsReport) && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {comp.recentFunding && (
+                                    <span className="text-[10px] bg-emerald-900/30 text-emerald-400 px-2 py-1 rounded border border-emerald-900/50 flex items-center">
+                                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5"></span>
+                                        {comp.recentFunding}
+                                    </span>
+                                )}
+                                {comp.lastEarningsReport && (
+                                    <span className="text-[10px] bg-indigo-900/30 text-indigo-400 px-2 py-1 rounded border border-indigo-900/50 flex items-center">
+                                        <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-1.5"></span>
+                                        {comp.lastEarningsReport}
+                                    </span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
