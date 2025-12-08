@@ -56,7 +56,7 @@ export default function App() {
           <div className="bg-primary-500 p-1.5 rounded-lg">
              <GlobeIcon className="w-5 h-5 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight text-white">OmniAnalytica</span>
+          <span className="text-lg font-bold tracking-tight text-white leading-tight">Global Company Comparison</span>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
@@ -92,7 +92,7 @@ export default function App() {
              <div className="bg-primary-500 p-1 rounded">
                 <GlobeIcon className="w-4 h-4 text-white" />
              </div>
-             <span className="font-bold text-white">Omni</span>
+             <span className="font-bold text-white">Global Comparison</span>
           </div>
 
           <div className="flex-1 max-w-xl mx-auto hidden md:block">
