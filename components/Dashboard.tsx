@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { AnalysisResult, FinancialMetric, NewsItem, Competitor } from '../types';
+import React, { useState, useEffect } from 'react';
+import { AnalysisResult, FinancialMetric, NewsItem, Competitor, PortfolioItem } from '../types';
 import { FinancialChart, Sparkline } from './Charts';
-import { ArrowTrendingUp, ArrowTrendingDown, DocumentTextIcon, GlobeIcon, BoltIcon, ArrowPathIcon, ArrowDownTrayIcon, MinusIcon } from './Icons';
+import { portfolioService } from '../services/portfolioService';
+import { ArrowTrendingUp, ArrowTrendingDown, DocumentTextIcon, GlobeIcon, BoltIcon, ArrowPathIcon, ArrowDownTrayIcon, MinusIcon, ChartBarIcon, ScaleIcon, PencilSquareIcon, XMarkIcon, BuildingLibraryIcon } from './Icons';
 
 interface DashboardProps {
   data: AnalysisResult;
@@ -41,12 +42,14 @@ const SWOTCard = ({ title, items, type }: { title: string, items: string[], type
     <div className={`bg-slate-800 p-5 rounded-r-xl border-l-4 ${colors[type]} border-y border-r border-slate-700 h-full`}>
       <h4 className="text-sm uppercase tracking-wider text-slate-400 font-bold mb-3">{title}</h4>
       <ul className="space-y-2">
-        {items.map((item, idx) => (
+        {items && items.length > 0 ? items.map((item, idx) => (
           <li key={idx} className="text-sm text-slate-300 flex items-start">
             <span className="mr-2 mt-1.5 w-1 h-1 rounded-full bg-slate-500 flex-shrink-0"></span>
             {item}
           </li>
-        ))}
+        )) : (
+            <li className="text-sm text-slate-500 italic">No data available</li>
+        )}
       </ul>
     </div>
   );
@@ -97,34 +100,298 @@ const CompanyLogo = ({ website, ticker }: { website?: string, ticker: string }) 
 
 const getHostname = (url: string) => {
   try {
-    return new URL(url).hostname;
+    return new URL(url).hostname.replace(/^www\./, '');
   } catch (e) {
     return url;
   }
 };
 
+const NotesSection = ({ ticker }: { ticker: string }) => {
+  const [note, setNote] = useState('');
+  
+  useEffect(() => {
+    const saved = localStorage.getItem(`global_comp_notes_${ticker}`);
+    if (saved) setNote(saved);
+    else setNote('');
+  }, [ticker]);
+
+  const handleSave = () => {
+    localStorage.setItem(`global_comp_notes_${ticker}`, note);
+  };
+
+  return (
+    <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 mt-6 relative group">
+       <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+         <PencilSquareIcon className="w-5 h-5 text-slate-400" /> Private Notes
+       </h3>
+       <textarea 
+         className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-primary-500 h-32 resize-none transition-colors"
+         placeholder="Add your private analysis notes here..."
+         value={note}
+         onChange={(e) => setNote(e.target.value)}
+         onBlur={handleSave} 
+       />
+       <p className="text-[10px] text-slate-500 mt-2 text-right italic opacity-0 group-hover:opacity-100 transition-opacity">Auto-saved to local storage</p>
+    </div>
+  );
+}
+
+const ProfileModal = ({ isOpen, onClose, data }: { isOpen: boolean, onClose: () => void, data: AnalysisResult }) => {
+  if (!isOpen) return null;
+
+  const DetailRow = ({ label, value }: { label: string, value: string | undefined }) => (
+    <div className="flex justify-between py-3 border-b border-slate-800 last:border-0">
+      <span className="text-slate-400 font-medium">{label}</span>
+      <span className="text-white font-semibold text-right">{value || 'N/A'}</span>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden relative">
+         <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+               <CompanyLogo website={data.profile.website} ticker={data.profile.ticker} />
+               <div>
+                  <div className="leading-tight">{data.profile.name}</div>
+                  <div className="text-xs text-slate-400 font-normal">Full Corporate Profile</div>
+               </div>
+            </h2>
+            <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
+               <XMarkIcon className="w-6 h-6" />
+            </button>
+         </div>
+         <div className="p-6">
+            <DetailRow label="CEO" value={data.profile.ceo} />
+            <DetailRow label="Founded" value={data.profile.founded} />
+            <DetailRow label="Headquarters" value={data.profile.headquarters} />
+            <DetailRow label="Sector" value={data.profile.sector} />
+            <DetailRow label="Website" value={data.profile.website} />
+            <div className="mt-6">
+               <h4 className="text-sm font-semibold text-slate-400 mb-2 uppercase tracking-wide">About</h4>
+               <p className="text-sm text-slate-300 leading-relaxed bg-slate-950/50 p-4 rounded-lg border border-slate-800">
+                  {data.profile.description}
+               </p>
+            </div>
+         </div>
+      </div>
+    </div>
+  );
+};
+
+const ComparisonModal = ({ isOpen, onClose, currentData }: { isOpen: boolean, onClose: () => void, currentData: AnalysisResult }) => {
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+  const [selectedTickers, setSelectedTickers] = useState<string[]>([]);
+  
+  useEffect(() => {
+    if (isOpen) {
+      // Load portfolio items, excluding current company
+      const items = portfolioService.getPortfolio().filter(p => p.ticker !== currentData.profile.ticker);
+      setPortfolioItems(items);
+      setSelectedTickers([]);
+    }
+  }, [isOpen, currentData]);
+
+  const toggleSelection = (ticker: string) => {
+    if (selectedTickers.includes(ticker)) {
+      setSelectedTickers(selectedTickers.filter(t => t !== ticker));
+    } else {
+      if (selectedTickers.length < 3) {
+        setSelectedTickers([...selectedTickers, ticker]);
+      }
+    }
+  };
+
+  if (!isOpen) return null;
+
+  // Prepare comparison data
+  const companiesToCompare = [
+    { name: currentData.profile.name, metrics: currentData.metrics, ticker: currentData.profile.ticker, isCurrent: true },
+    ...selectedTickers.map(t => {
+      const item = portfolioItems.find(p => p.ticker === t);
+      return { 
+        name: item?.name || t, 
+        metrics: item?.metrics || [], 
+        ticker: item?.ticker,
+        isCurrent: false
+      };
+    })
+  ];
+
+  // Extract all unique metric labels from current company to use as rows
+  const metricLabels = currentData.metrics.map(m => m.label);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl">
+        
+        {/* Header */}
+        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <ScaleIcon className="w-6 h-6 text-indigo-400" /> Compare Companies
+            </h2>
+            <p className="text-slate-400 text-sm mt-1">Select up to 3 companies from your portfolio to compare.</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors">
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+           
+           {/* Sidebar: Selection */}
+           <div className="w-full md:w-64 bg-slate-950 p-4 border-b md:border-b-0 md:border-r border-slate-800 overflow-y-auto">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Your Portfolio</h3>
+              {portfolioItems.length === 0 ? (
+                <p className="text-sm text-slate-600 italic">No other companies in portfolio.</p>
+              ) : (
+                <div className="space-y-2">
+                  {portfolioItems.map(item => (
+                    <label key={item.ticker} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                      selectedTickers.includes(item.ticker) 
+                        ? 'bg-primary-900/20 border-primary-500/50' 
+                        : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                    }`}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedTickers.includes(item.ticker)}
+                        onChange={() => toggleSelection(item.ticker)}
+                        disabled={!selectedTickers.includes(item.ticker) && selectedTickers.length >= 3}
+                        className="rounded border-slate-600 text-primary-500 focus:ring-offset-0 focus:ring-primary-500 bg-slate-800"
+                      />
+                      <div className="overflow-hidden">
+                        <div className="font-medium text-slate-200 truncate text-sm">{item.name}</div>
+                        <div className="text-xs text-slate-500">{item.ticker}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+           </div>
+
+           {/* Main: Table */}
+           <div className="flex-1 p-6 overflow-auto">
+              {companiesToCompare.length === 1 ? (
+                 <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-60">
+                    <ScaleIcon className="w-16 h-16 mb-4 text-slate-700" />
+                    <p>Select companies from the left to begin comparison.</p>
+                 </div>
+              ) : (
+                <div className="min-w-[600px]">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="p-4 border-b border-slate-800 text-xs font-semibold text-slate-500 uppercase tracking-wider w-1/4">Metric</th>
+                        {companiesToCompare.map((company, idx) => (
+                          <th key={idx} className={`p-4 border-b border-slate-800 w-1/4 ${company.isCurrent ? 'bg-slate-800/50' : ''}`}>
+                             <div className="font-bold text-white text-lg">{company.ticker}</div>
+                             <div className="text-xs text-slate-400 truncate max-w-[150px]">{company.name}</div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {metricLabels.map((label, rowIdx) => (
+                        <tr key={rowIdx} className="hover:bg-slate-800/30">
+                          <td className="p-4 text-sm font-medium text-slate-400">{label}</td>
+                          {companiesToCompare.map((company, colIdx) => {
+                             const metric = company.metrics?.find(m => m.label === label);
+                             return (
+                               <td key={colIdx} className={`p-4 ${company.isCurrent ? 'bg-slate-800/30' : ''}`}>
+                                  {metric ? (
+                                    <div>
+                                      <div className="text-white font-semibold">{metric.value}</div>
+                                      <div className={`text-xs ${metric.trend === 'up' ? 'text-emerald-400' : metric.trend === 'down' ? 'text-red-400' : 'text-slate-500'}`}>
+                                        {metric.change > 0 ? '+' : ''}{metric.change}%
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-600 text-xs italic">N/A</span>
+                                  )}
+                               </td>
+                             );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
+  const [inPortfolio, setInPortfolio] = useState(portfolioService.isInPortfolio(data.profile.ticker));
+  const [showCompare, setShowCompare] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+
   const handleExport = () => {
-    // Create a Blob from the JSON data
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    
-    // Create a temporary link and trigger download
     const link = document.createElement("a");
     link.href = url;
     link.download = `${data.profile.name.replace(/\s+/g, '_')}_Analysis.json`;
     document.body.appendChild(link);
     link.click();
-    
-    // Cleanup
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
+  const handleAddToPortfolio = () => {
+    // Attempt to extract stock price change from metrics if available, or chart data
+    const stockMetric = data.metrics?.find(m => m.label.toLowerCase().includes('stock') || m.label.toLowerCase().includes('price') || m.label.toLowerCase().includes('cap'));
+    
+    // Fallback data extraction
+    const currentPrice = data.chartData && data.chartData.length > 0 ? `$${data.chartData[data.chartData.length - 1].stockPrice}` : 'N/A';
+    
+    const item: PortfolioItem = {
+        ticker: data.profile.ticker,
+        name: data.profile.name,
+        sector: data.profile.sector,
+        price: stockMetric?.value || currentPrice,
+        change: stockMetric?.change || 0,
+        addedAt: new Date().toISOString(),
+        metrics: data.metrics // Save metrics for comparison
+    };
+    
+    if (inPortfolio) {
+        portfolioService.removeFromPortfolio(data.profile.ticker);
+        setInPortfolio(false);
+    } else {
+        portfolioService.addToPortfolio(item);
+        setInPortfolio(true);
+    }
+  };
+
+  // Ensure safe data access
+  const safeMetrics = data.metrics || [];
+  const safeChartData = data.chartData || [];
+  const safeRecentNews = data.recentNews || [];
+  const safeCompetitors = data.competitors || [];
+  const safeSwot = data.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] };
+
   return (
-    <div className="space-y-6 pb-20 animate-fade-in">
+    <div className="space-y-6 pb-20 animate-fade-in relative">
       
+      {/* Modals */}
+      <ComparisonModal 
+        isOpen={showCompare} 
+        onClose={() => setShowCompare(false)} 
+        currentData={data} 
+      />
+      <ProfileModal
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        data={data}
+      />
+
       {/* Header Info */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-800 pb-6">
         <div className="flex-1">
@@ -138,28 +405,50 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
                 <span>{data.profile.sector}</span>
                 <span>•</span>
                 <span>{data.profile.headquarters}</span>
-                {data.profile.website && (
-                  <>
-                    <span>•</span>
-                    <a href={data.profile.website} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">
-                      {new URL(data.profile.website.startsWith('http') ? data.profile.website : `https://${data.profile.website}`).hostname}
-                    </a>
-                  </>
-                )}
               </div>
-              {/* Added Description */}
-              <p className="text-slate-300 text-sm mt-3 font-light leading-snug max-w-3xl border-l-2 border-slate-700 pl-3">
-                {data.profile.description}
-              </p>
+              <button onClick={() => setShowProfile(true)} className="text-primary-400 hover:text-primary-300 text-xs mt-1 font-medium flex items-center gap-1">
+                 View Full Profile <BuildingLibraryIcon className="w-3 h-3" />
+              </button>
             </div>
           </div>
           <p className="text-slate-400 text-sm max-w-2xl mt-4 leading-relaxed bg-slate-800/50 p-3 rounded-lg border border-slate-800">
             <span className="font-semibold text-slate-200 block mb-1">Executive Outlook:</span>
             {data.executiveSummary}
           </p>
+          
+          {/* Private Notes Section */}
+          <NotesSection ticker={data.profile.ticker} />
+
         </div>
         
         <div className="flex gap-2">
+            <button 
+                onClick={() => setShowCompare(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg border border-slate-700 transition-colors text-sm font-medium whitespace-nowrap"
+            >
+                <ScaleIcon className="w-4 h-4" />
+                Compare Companies
+            </button>
+
+            <button
+                onClick={handleAddToPortfolio}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors text-sm font-medium whitespace-nowrap ${
+                    inPortfolio 
+                    ? 'bg-emerald-900/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-900/30' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                }`}
+            >
+                {inPortfolio ? (
+                     <>
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Saved
+                     </>
+                ) : (
+                    <>
+                        <ChartBarIcon className="w-4 h-4" /> Save to Portfolio
+                    </>
+                )}
+            </button>
+
             <button 
                 onClick={handleExport}
                 className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors text-sm font-medium whitespace-nowrap"
@@ -179,7 +468,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
 
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {data.metrics.map((m, i) => <MetricCard key={i} metric={m} />)}
+        {safeMetrics.map((m, i) => <MetricCard key={i} metric={m} />)}
       </div>
 
       {/* Charts Section */}
@@ -192,7 +481,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
             </h3>
             <span className="text-xs text-slate-500">12 Month Projection</span>
           </div>
-          <FinancialChart data={data.chartData} type="stock" />
+          <FinancialChart data={safeChartData} type="stock" />
         </div>
         <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
           <div className="flex justify-between items-center mb-6">
@@ -202,7 +491,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
             </h3>
             <span className="text-xs text-slate-500">Revenue vs Net Income</span>
           </div>
-          <FinancialChart data={data.chartData} type="revenue" />
+          <FinancialChart data={safeChartData} type="revenue" />
         </div>
       </div>
 
@@ -213,10 +502,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
             Strategic Analysis (SWOT)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <SWOTCard title="Strengths" items={data.swot.strengths} type="s" />
-            <SWOTCard title="Weaknesses" items={data.swot.weaknesses} type="w" />
-            <SWOTCard title="Opportunities" items={data.swot.opportunities} type="o" />
-            <SWOTCard title="Threats" items={data.swot.threats} type="t" />
+            <SWOTCard title="Strengths" items={safeSwot.strengths || []} type="s" />
+            <SWOTCard title="Weaknesses" items={safeSwot.weaknesses || []} type="w" />
+            <SWOTCard title="Opportunities" items={safeSwot.opportunities || []} type="o" />
+            <SWOTCard title="Threats" items={safeSwot.threats || []} type="t" />
         </div>
       </div>
 
@@ -227,16 +516,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
         <div className="lg:col-span-2 space-y-4">
             <h3 className="text-lg font-semibold text-white">Market Intelligence & News</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {data.recentNews.map((news, i) => <NewsCard key={i} news={news} />)}
+                {safeRecentNews.map((news, i) => <NewsCard key={i} news={news} />)}
             </div>
-            {/* Sources Display */}
+            
+            {/* Sources Display (Grounding) */}
             {data.sourceUrls && data.sourceUrls.length > 0 && (
-                <div className="mt-4 p-4 bg-slate-900 rounded border border-slate-800">
-                    <p className="text-xs text-slate-500 font-semibold mb-2 uppercase">Sources (Search Grounding)</p>
+                <div className="mt-4 p-4 bg-slate-900/50 rounded-xl border border-slate-800 animate-fade-in">
+                    <div className="flex items-center gap-2 mb-3">
+                        <GlobeIcon className="w-3 h-3 text-slate-500" />
+                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Verified Sources</h4>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                         {data.sourceUrls.map((url, i) => (
-                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:underline truncate max-w-[200px] block bg-slate-800 px-2 py-1 rounded">
-                                {getHostname(url)}
+                            <a 
+                                key={i} 
+                                href={url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all group"
+                            >
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary-500/50 group-hover:bg-primary-400"></span>
+                                <span className="text-xs text-slate-300 group-hover:text-white font-medium truncate max-w-[200px]">
+                                    {getHostname(url)}
+                                </span>
                             </a>
                         ))}
                     </div>
@@ -250,13 +552,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
                 <h3 className="text-lg font-semibold text-white">Competitive Landscape</h3>
             </div>
             <div className="divide-y divide-slate-700">
-                {data.competitors.map((comp, i) => (
+                {safeCompetitors.map((comp, i) => (
                     <div key={i} className="p-4 hover:bg-slate-700/30 transition-colors">
                         <div className="flex justify-between items-center mb-1">
                             <span className="font-semibold text-slate-200">{comp.name}</span>
                             <div className="flex items-center gap-3">
                                 {/* Sparkline */}
-                                <div title={`Market Share Trend: ${comp.marketShareTrend}`}>
+                                <div title={`Market Share Trend: ${comp.marketShareTrend}`} className="w-16 h-8">
                                     <Sparkline trend={comp.marketShareTrend} />
                                 </div>
                                 <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full whitespace-nowrap">

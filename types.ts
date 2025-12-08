@@ -63,13 +63,44 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  address?: string;
+  jobTitle?: string;
+}
+
+export interface PortfolioItem {
+  ticker: string;
+  name: string;
+  sector: string;
+  price: string;
+  change: number;
+  addedAt: string;
+  metrics?: FinancialMetric[];
+}
+
+export interface ForecastPoint {
+  date: string;
+  optimistic: number;
+  neutral: number;
+  pessimistic: number;
+}
+
+export interface ForecastResult {
+  companyName: string;
+  chartData: ForecastPoint[];
+  analysis: string;
 }
 
 export enum AppState {
   SIGN_IN,
   SIGN_UP,
   LANDING,
+  WORKSPACE,
+  ACCOUNT,
   LOADING,
   DASHBOARD,
+  MARKETS,
+  PORTFOLIO,
+  FORECASTING,
   ERROR
 }
