@@ -9,7 +9,12 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Legend
+  Legend,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis
 } from 'recharts';
 import { ChartDataPoint } from '../types';
 
@@ -131,6 +136,32 @@ export const Sparkline: React.FC<{ trend?: 'up' | 'down' | 'stable' }> = ({ tren
             isAnimationActive={true} 
           />
         </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+export const SWOTRadarChart: React.FC<{ data: any[] }> = ({ data }) => {
+  return (
+    <div className="h-64 w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
+          <PolarGrid stroke="#334155" />
+          <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+          <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={false} axisLine={false} />
+          <Radar
+            name="Intensity"
+            dataKey="A"
+            stroke="#0ea5e9"
+            strokeWidth={2}
+            fill="#0ea5e9"
+            fillOpacity={0.3}
+          />
+          <Tooltip 
+             contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', fontSize: '12px' }} 
+             cursor={{ stroke: '#94a3b8', strokeWidth: 1 }}
+          />
+        </RadarChart>
       </ResponsiveContainer>
     </div>
   );

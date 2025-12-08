@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnalysisResult, FinancialMetric, NewsItem, Competitor, PortfolioItem } from '../types';
-import { FinancialChart, Sparkline } from './Charts';
+import { FinancialChart, Sparkline, SWOTRadarChart } from './Charts';
 import { portfolioService } from '../services/portfolioService';
-import { ArrowTrendingUp, ArrowTrendingDown, DocumentTextIcon, GlobeIcon, BoltIcon, ArrowPathIcon, ArrowDownTrayIcon, MinusIcon, ChartBarIcon, ScaleIcon, PencilSquareIcon, XMarkIcon, BuildingLibraryIcon } from './Icons';
+import { ArrowTrendingUp, ArrowTrendingDown, DocumentTextIcon, GlobeIcon, BoltIcon, ArrowPathIcon, ArrowDownTrayIcon, MinusIcon, ChartBarIcon, ScaleIcon, PencilSquareIcon, XMarkIcon, BuildingLibraryIcon, HandThumbUpIcon, HandThumbDownIcon, ChevronDownIcon } from './Icons';
 
 interface DashboardProps {
   data: AnalysisResult;
@@ -330,8 +330,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
   const [inPortfolio, setInPortfolio] = useState(portfolioService.isInPortfolio(data.profile.ticker));
   const [showCompare, setShowCompare] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
-  const handleExport = () => {
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleExportJSON = () => {
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -342,6 +357,58 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+  };
+
+  const handleExportCSV = () => {
+    const { profile, metrics, competitors, swot } = data;
+    let csvContent = "data:text/csv;charset=utf-8,";
+
+    // Section 1: Profile
+    csvContent += "Company Profile\n";
+    csvContent += `Name,${profile.name}\n`;
+    csvContent += `Ticker,${profile.ticker}\n`;
+    csvContent += `Sector,${profile.sector}\n`;
+    csvContent += `CEO,${profile.ceo}\n`;
+    csvContent += `Headquarters,${profile.headquarters}\n\n`;
+
+    // Section 2: Financial Metrics
+    csvContent += "Financial Metrics\n";
+    csvContent += "Metric,Value,Change,Trend\n";
+    metrics.forEach(m => {
+        csvContent += `"${m.label}","${m.value}","${m.change}%","${m.trend}"\n`;
+    });
+    csvContent += "\n";
+
+    // Section 3: SWOT
+    csvContent += "SWOT Analysis\n";
+    csvContent += "Type,Item\n";
+    swot.strengths.forEach(i => csvContent += `Strength,"${i.replace(/"/g, '""')}"\n`);
+    swot.weaknesses.forEach(i => csvContent += `Weakness,"${i.replace(/"/g, '""')}"\n`);
+    swot.opportunities.forEach(i => csvContent += `Opportunity,"${i.replace(/"/g, '""')}"\n`);
+    swot.threats.forEach(i => csvContent += `Threat,"${i.replace(/"/g, '""')}"\n`);
+    csvContent += "\n";
+
+    // Section 4: Competitors
+    csvContent += "Competitors\n";
+    csvContent += "Name,Market Share,Trend,Advantage\n";
+    competitors.forEach(c => {
+        csvContent += `"${c.name}","${c.marketShare}","${c.marketShareTrend}","${c.advantage.replace(/"/g, '""')}"\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${profile.name.replace(/\s+/g, '_')}_Analysis.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setShowExportMenu(false);
+  };
+
+  const handlePrint = () => {
+    window.print();
+    setShowExportMenu(false);
   };
 
   const handleAddToPortfolio = () => {
@@ -370,12 +437,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
     }
   };
 
+  const handleFeedback = (type: 'positive' | 'negative') => {
+    setFeedback(type);
+    console.log(`User feedback for ${data.profile.ticker}: ${type}`);
+  };
+
   // Ensure safe data access
   const safeMetrics = data.metrics || [];
   const safeChartData = data.chartData || [];
   const safeRecentNews = data.recentNews || [];
   const safeCompetitors = data.competitors || [];
   const safeSwot = data.swot || { strengths: [], weaknesses: [], opportunities: [], threats: [] };
+
+  const swotChartData = [
+    { subject: 'Strengths', A: safeSwot.strengths.length },
+    { subject: 'Weaknesses', A: safeSwot.weaknesses.length },
+    { subject: 'Opportunities', A: safeSwot.opportunities.length },
+    { subject: 'Threats', A: safeSwot.threats.length },
+  ];
 
   return (
     <div className="space-y-6 pb-20 animate-fade-in relative">
@@ -421,48 +500,83 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
 
         </div>
         
-        <div className="flex gap-2">
-            <button 
-                onClick={() => setShowCompare(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg border border-slate-700 transition-colors text-sm font-medium whitespace-nowrap"
-            >
-                <ScaleIcon className="w-4 h-4" />
-                Compare Companies
-            </button>
+        <div className="flex flex-col gap-2 items-end">
+            <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-slate-500 font-medium mr-1">Analysis Helpful?</span>
+                <button 
+                  onClick={() => handleFeedback('positive')} 
+                  className={`p-1.5 rounded hover:bg-slate-700 transition-colors ${feedback === 'positive' ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-400'}`}
+                >
+                  <HandThumbUpIcon className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => handleFeedback('negative')} 
+                  className={`p-1.5 rounded hover:bg-slate-700 transition-colors ${feedback === 'negative' ? 'text-red-400 bg-red-500/10' : 'text-slate-400'}`}
+                >
+                  <HandThumbDownIcon className="w-4 h-4" />
+                </button>
+            </div>
 
-            <button
-                onClick={handleAddToPortfolio}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors text-sm font-medium whitespace-nowrap ${
-                    inPortfolio 
-                    ? 'bg-emerald-900/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-900/30' 
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                }`}
-            >
-                {inPortfolio ? (
-                     <>
-                        <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Saved
-                     </>
-                ) : (
-                    <>
-                        <ChartBarIcon className="w-4 h-4" /> Save to Portfolio
-                    </>
-                )}
-            </button>
+            <div className="flex gap-2">
+              <button 
+                  onClick={() => setShowCompare(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg border border-slate-700 transition-colors text-sm font-medium whitespace-nowrap"
+              >
+                  <ScaleIcon className="w-4 h-4" />
+                  Compare
+              </button>
 
-            <button 
-                onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors text-sm font-medium whitespace-nowrap"
-            >
-                <ArrowDownTrayIcon className="w-4 h-4" />
-                Export JSON
-            </button>
-            <button 
-                onClick={onRefresh}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors text-sm font-medium whitespace-nowrap"
-            >
-                <ArrowPathIcon className="w-4 h-4" />
-                Refresh Data
-            </button>
+              <button
+                  onClick={handleAddToPortfolio}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors text-sm font-medium whitespace-nowrap ${
+                      inPortfolio 
+                      ? 'bg-emerald-900/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-900/30' 
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                  }`}
+              >
+                  {inPortfolio ? (
+                      <>
+                          <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Saved
+                      </>
+                  ) : (
+                      <>
+                          <ChartBarIcon className="w-4 h-4" /> Save
+                      </>
+                  )}
+              </button>
+
+              <div className="relative" ref={exportMenuRef}>
+                  <button 
+                      onClick={() => setShowExportMenu(!showExportMenu)}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors text-sm font-medium whitespace-nowrap"
+                  >
+                      <ArrowDownTrayIcon className="w-4 h-4" />
+                      Export
+                      <ChevronDownIcon className="w-3 h-3 ml-1" />
+                  </button>
+                  {showExportMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in">
+                          <button onClick={handleExportJSON} className="w-full text-left px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors border-b border-slate-700/50">
+                              JSON <span className="text-slate-500 text-xs ml-1">(Raw Data)</span>
+                          </button>
+                          <button onClick={handleExportCSV} className="w-full text-left px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors border-b border-slate-700/50">
+                              CSV <span className="text-slate-500 text-xs ml-1">(Spreadsheet)</span>
+                          </button>
+                          <button onClick={handlePrint} className="w-full text-left px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
+                              PDF <span className="text-slate-500 text-xs ml-1">(Report)</span>
+                          </button>
+                      </div>
+                  )}
+              </div>
+
+              <button 
+                  onClick={onRefresh}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors text-sm font-medium whitespace-nowrap"
+              >
+                  <ArrowPathIcon className="w-4 h-4" />
+                  Refresh
+              </button>
+            </div>
         </div>
       </div>
 
@@ -501,11 +615,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
             <GlobeIcon className="w-6 h-6 text-slate-400" />
             Strategic Analysis (SWOT)
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <SWOTCard title="Strengths" items={safeSwot.strengths || []} type="s" />
-            <SWOTCard title="Weaknesses" items={safeSwot.weaknesses || []} type="w" />
-            <SWOTCard title="Opportunities" items={safeSwot.opportunities || []} type="o" />
-            <SWOTCard title="Threats" items={safeSwot.threats || []} type="t" />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* SWOT Visual Radar */}
+          <div className="lg:col-span-1 bg-slate-800 rounded-xl border border-slate-700 p-4 flex flex-col items-center justify-center">
+             <h4 className="text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Analysis Balance</h4>
+             <SWOTRadarChart data={swotChartData} />
+             <div className="text-center mt-2">
+                <p className="text-[10px] text-slate-400 max-w-[200px]">
+                  Visual representation of the intensity and volume of strategic factors identified by AI.
+                </p>
+             </div>
+          </div>
+
+          {/* SWOT Grid */}
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SWOTCard title="Strengths" items={safeSwot.strengths || []} type="s" />
+              <SWOTCard title="Weaknesses" items={safeSwot.weaknesses || []} type="w" />
+              <SWOTCard title="Opportunities" items={safeSwot.opportunities || []} type="o" />
+              <SWOTCard title="Threats" items={safeSwot.threats || []} type="t" />
+          </div>
         </div>
       </div>
 

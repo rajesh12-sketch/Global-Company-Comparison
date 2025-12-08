@@ -332,6 +332,36 @@ export default function App() {
                      </div>
                  </div>
 
+                 {/* Platform Description */}
+                 <div className="w-full mb-16 bg-gradient-to-b from-slate-800/40 to-slate-900/40 border border-slate-800 rounded-2xl p-6 text-left relative overflow-hidden backdrop-blur-sm shadow-xl">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-slate-800 rounded-lg border border-slate-700">
+                                <GlobeIcon className="w-5 h-5 text-primary-400" />
+                            </div>
+                            <h2 className="text-xl font-bold text-white">Empowering Smarter Decisions</h2>
+                        </div>
+                        <p className="text-slate-400 leading-relaxed text-sm mb-6">
+                            Global Analytics transforms complex market data into clear, actionable intelligence. Powered by Gemini 2.5, we aggregate financial reports, live stock data, and global news sentiment to generate professional-grade investment memos in seconds.
+                        </p>
+                        <div className="grid grid-cols-2 gap-4">
+                             <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
+                                 <span className="w-1.5 h-1.5 rounded-full bg-primary-400"></span> Global Coverage
+                             </div>
+                             <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
+                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Real-time Insights
+                             </div>
+                             <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
+                                 <span className="w-1.5 h-1.5 rounded-full bg-yellow-400"></span> Predictive AI
+                             </div>
+                             <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
+                                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Strategic Reports
+                             </div>
+                        </div>
+                    </div>
+                 </div>
+
                  {/* Global Markets Explorer */}
                  <div className="w-full">
                     <h3 className="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-6 flex items-center justify-center gap-2">
