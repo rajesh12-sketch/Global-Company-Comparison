@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { User } from '../types';
-import { authService } from '../services/authService';
-import { UserCircleIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, BriefcaseIcon, ChevronLeftIcon } from './Icons';
+import { User } from '../types.ts';
+import { authService } from '../services/authService.ts';
+import { UserCircleIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, BriefcaseIcon, ChevronLeftIcon } from './Icons.tsx';
 
 interface AccountProps {
   user: User;

@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
-import { generateForecast } from '../services/geminiService';
-import { ForecastResult } from '../types';
+import { generateForecast } from '../services/geminiService.ts';
+import { ForecastResult } from '../types.ts';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { BoltIcon, ArrowPathIcon } from './Icons';
+import { BoltIcon, ArrowPathIcon } from './Icons.tsx';
 
 interface ForecastingProps {
   initialCompany: string;

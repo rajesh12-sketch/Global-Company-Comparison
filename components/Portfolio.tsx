@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
-import { PortfolioItem } from '../types';
-import { portfolioService } from '../services/portfolioService';
-import { ChartBarIcon, ArrowTrendingUp, ArrowTrendingDown, BoltIcon } from './Icons';
+import { PortfolioItem } from '../types.ts';
+import { portfolioService } from '../services/portfolioService.ts';
+import { ChartBarIcon, ArrowTrendingUp, ArrowTrendingDown, BoltIcon } from './Icons.tsx';
 
 interface PortfolioProps {
   onSelectCompany: (ticker: string) => void;

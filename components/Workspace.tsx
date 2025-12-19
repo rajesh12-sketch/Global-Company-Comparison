@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { User, PortfolioItem } from '../types';
-import { portfolioService } from '../services/portfolioService';
-import { BoltIcon, ChartBarIcon, GlobeIcon, Squares2X2Icon, ArrowTrendingUp, ArrowTrendingDown } from './Icons';
+import { User, PortfolioItem } from '../types.ts';
+import { portfolioService } from '../services/portfolioService.ts';
+import { BoltIcon, ChartBarIcon, GlobeIcon, Squares2X2Icon, ArrowTrendingUp, ArrowTrendingDown } from './Icons.tsx';
 
 interface WorkspaceProps {
   user: User | null;

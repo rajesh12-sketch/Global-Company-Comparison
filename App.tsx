@@ -1,21 +1,21 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { analyzeCompany } from './services/geminiService';
-import { authService } from './services/authService';
-import { Dashboard } from './components/Dashboard';
-import { Portfolio } from './components/Portfolio';
-import { Forecasting } from './components/Forecasting';
-import { MarketExplorer } from './components/MarketExplorer';
-import { Workspace } from './components/Workspace';
-import { Account } from './components/Account';
-import { AppState, AnalysisResult, User } from './types';
+import { analyzeCompany } from './services/geminiService.ts';
+import { authService } from './services/authService.ts';
+import { Dashboard } from './components/Dashboard.tsx';
+import { Portfolio } from './components/Portfolio.tsx';
+import { Forecasting } from './components/Forecasting.tsx';
+import { MarketExplorer } from './components/MarketExplorer.tsx';
+import { Workspace } from './components/Workspace.tsx';
+import { Account } from './components/Account.tsx';
+import { AppState, AnalysisResult, User } from './types.ts';
 import { 
   SearchIcon, GlobeIcon, ChartBarIcon, BoltIcon, 
   BuildingLibraryIcon, HomeIcon, BriefcaseIcon, 
   PresentationChartLineIcon, Squares2X2Icon, Cog6ToothIcon, 
   ChevronLeftIcon, ChevronRightIcon, XMarkIcon, Bars3Icon,
   ArrowPathIcon
-} from './components/Icons';
+} from './components/Icons.tsx';
 
 const DEFAULT_USER: User = {
   id: 'guest_analyst',
@@ -38,7 +38,6 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    // Load persisted user if exists, otherwise use default
     const currentUser = authService.getCurrentUser();
     if (currentUser) {
       setUser(currentUser);

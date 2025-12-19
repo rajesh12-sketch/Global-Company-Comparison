@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { GlobeIcon, ArrowTrendingUp, SearchIcon } from './Icons';
+import { GlobeIcon, ArrowTrendingUp, SearchIcon } from './Icons.tsx';
 
 interface MarketExplorerProps {
   onSelect: (ticker: string) => void;

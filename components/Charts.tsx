@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   LineChart,
@@ -16,7 +17,7 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis
 } from 'recharts';
-import { ChartDataPoint } from '../types';
+import { ChartDataPoint } from '../types.ts';
 
 interface FinancialChartProps {
   data: ChartDataPoint[];

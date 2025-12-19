@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AnalysisResult, FinancialMetric, NewsItem, Competitor, PortfolioItem } from '../types';
-import { FinancialChart, Sparkline, SWOTRadarChart } from './Charts';
-import { portfolioService } from '../services/portfolioService';
+import { AnalysisResult, FinancialMetric, NewsItem, Competitor, PortfolioItem } from '../types.ts';
+import { FinancialChart, Sparkline, SWOTRadarChart } from './Charts.tsx';
+import { portfolioService } from '../services/portfolioService.ts';
 import { 
   ArrowTrendingUp, ArrowTrendingDown, DocumentTextIcon, GlobeIcon, BoltIcon, 
   ArrowPathIcon, ArrowDownTrayIcon, MinusIcon, ChartBarIcon, ScaleIcon, 
   PencilSquareIcon, XMarkIcon, BuildingLibraryIcon, HandThumbUpIcon, 
   HandThumbDownIcon, ChevronDownIcon 
-} from './Icons';
+} from './Icons.tsx';
 
 interface DashboardProps {
   data: AnalysisResult;

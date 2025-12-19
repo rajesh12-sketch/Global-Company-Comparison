@@ -1,5 +1,5 @@
 
-import { User } from "../types";
+import { User } from "../types.ts";
 
 const SESSION_KEY = 'global_comp_session';
 
