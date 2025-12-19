@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { authService } from '../services/authService';
-import { UserCircleIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, BriefcaseIcon } from './Icons';
+import { UserCircleIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, BriefcaseIcon, ChevronLeftIcon } from './Icons';
 
 interface AccountProps {
   user: User;
   onUpdateUser: (user: User) => void;
+  onBack: () => void;
 }
 
-export const Account: React.FC<AccountProps> = ({ user, onUpdateUser }) => {
+export const Account: React.FC<AccountProps> = ({ user, onUpdateUser, onBack }) => {
   const [formData, setFormData] = useState<User>(user);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -52,9 +54,18 @@ export const Account: React.FC<AccountProps> = ({ user, onUpdateUser }) => {
 
   return (
     <div className="max-w-4xl mx-auto pb-20 animate-fade-in">
-      <div className="mb-8 border-b border-slate-800 pb-6">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Account Settings</h1>
-        <p className="text-slate-400 mt-2">Manage your personal information and contact details.</p>
+      <div className="mb-8 border-b border-slate-800 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <button 
+            onClick={onBack}
+            className="flex items-center gap-2 text-primary-400 hover:text-white transition-colors text-sm font-bold uppercase tracking-widest mb-4 group"
+          >
+            <ChevronLeftIcon className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Workspace
+          </button>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Account Settings</h1>
+          <p className="text-slate-400 mt-2">Manage your personal information and contact details.</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

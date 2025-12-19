@@ -1,12 +1,10 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AnalysisResult, ForecastResult } from "../types";
 
 const apiKey = process.env.API_KEY;
-
-// Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: apiKey });
 
-// we keep the schema definition to stringify it into the prompt
 const analysisSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -31,7 +29,7 @@ const analysisSchema: Schema = {
         properties: {
           label: { type: Type.STRING },
           value: { type: Type.STRING },
-          change: { type: Type.NUMBER, description: "Percentage change, positive or negative" },
+          change: { type: Type.NUMBER },
           trend: { type: Type.STRING, enum: ["up", "down", "neutral"] },
         },
         required: ["label", "value", "change", "trend"],
@@ -42,10 +40,10 @@ const analysisSchema: Schema = {
       items: {
         type: Type.OBJECT,
         properties: {
-          date: { type: Type.STRING, description: "YYYY-MM format" },
-          revenue: { type: Type.NUMBER, description: "In millions USD" },
-          profit: { type: Type.NUMBER, description: "In millions USD" },
-          stockPrice: { type: Type.NUMBER, description: "Price in USD (converted if necessary)" },
+          date: { type: Type.STRING },
+          revenue: { type: Type.NUMBER },
+          profit: { type: Type.NUMBER },
+          stockPrice: { type: Type.NUMBER },
         },
         required: ["date", "revenue", "profit", "stockPrice"],
       },
@@ -67,10 +65,10 @@ const analysisSchema: Schema = {
         properties: {
           name: { type: Type.STRING },
           marketShare: { type: Type.STRING },
-          marketShareTrend: { type: Type.STRING, enum: ["up", "down", "stable"], description: "Trend of their market share: up, down, or stable" },
+          marketShareTrend: { type: Type.STRING, enum: ["up", "down", "stable"] },
           advantage: { type: Type.STRING },
-          recentFunding: { type: Type.STRING, description: "E.g. 'Series B - $50M' or 'IPO'" },
-          lastEarningsReport: { type: Type.STRING, description: "E.g. 'Q3 2024: beat estimates'" },
+          recentFunding: { type: Type.STRING },
+          lastEarningsReport: { type: Type.STRING },
         },
         required: ["name", "marketShare", "marketShareTrend", "advantage"],
       },
@@ -102,7 +100,7 @@ const forecastSchema: Schema = {
             items: {
                 type: Type.OBJECT,
                 properties: {
-                    date: { type: Type.STRING, description: "YYYY-MM format (future)" },
+                    date: { type: Type.STRING },
                     optimistic: { type: Type.NUMBER },
                     neutral: { type: Type.NUMBER },
                     pessimistic: { type: Type.NUMBER }
@@ -110,170 +108,63 @@ const forecastSchema: Schema = {
                 required: ["date", "optimistic", "neutral", "pessimistic"]
             }
         },
-        analysis: { type: Type.STRING, description: "Explanation of the forecast drivers and scenarios" }
+        analysis: { type: Type.STRING }
     },
     required: ["companyName", "chartData", "analysis"]
 };
 
-// Centralized error handling helper
-const handleGeminiError = (error: any): never => {
-    console.error("Gemini API Error:", error);
-    let message = "An unexpected error occurred during analysis.";
-
-    const errStr = error.toString().toLowerCase();
-    const errMsg = error.message?.toLowerCase() || "";
-
-    if (errStr.includes("api key") || errMsg.includes("api key")) {
-        message = "Configuration Error: API Key is invalid or missing. Please check your settings.";
-    } else if (errMsg.includes("429") || errMsg.includes("quota")) {
-        message = "Usage Limit Reached: We're experiencing high traffic. Please wait a minute and try again.";
-    } else if (errMsg.includes("503") || errMsg.includes("overloaded")) {
-        message = "Service Busy: The AI model is currently overloaded. Please try again in a few moments.";
-    } else if (errMsg.includes("safety") || errMsg.includes("blocked")) {
-        message = "Content Filtered: The analysis was blocked by safety settings. Try searching for a different company.";
-    } else if (errMsg.includes("fetch failed") || errMsg.includes("network")) {
-        message = "Connection Error: Unable to reach the server. Please check your internet connection.";
-    } else if (errMsg.includes("not found")) {
-        message = "Company Not Found: We couldn't locate data for this specific company. Try the full official name.";
-    } else if (errMsg.includes("syntaxerror") || errMsg.includes("json")) {
-        message = "Data Parsing Error: The AI returned an invalid format. Please try running the analysis again.";
-    }
-
-    throw new Error(message);
-};
-
 export const analyzeCompany = async (companyName: string): Promise<AnalysisResult> => {
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please check your configuration.");
-  }
+  if (!apiKey) throw new Error("API Key missing.");
 
   try {
-    const model = "gemini-2.5-flash";
-    const schemaString = JSON.stringify(analysisSchema);
-
+    const model = "gemini-3-flash-preview";
     const prompt = `
-      Act as a senior financial analyst. Provide a comprehensive, real-time data analysis for the company: "${companyName}".
+      Act as a Lead Financial Analyst. Produce a complete real-time intelligence briefing for "${companyName}".
+      Use Google Search to verify latest fiscal reports, news, and stock prices.
+      Return JSON only.
       
-      Requirements:
-      1. Profile: Accurate corporate details including official website URL.
-      2. Metrics: Estimate current Revenue, Net Income, P/E Ratio, and Market Cap. Include recent % changes.
-      3. ChartData: Generate 12 data points representing the last 12 months or quarters (labeled appropriately) showing estimated Revenue, Profit, and Stock Price trends based on historical performance. 
-         IMPORTANT: Convert all currency values (Revenue, Profit, Stock Price) to USD for consistency, even if the company is international.
-      4. SWOT: Deep strategic analysis.
-      5. Competitors: Top 3 direct competitors. Estimate their market share trend (up/down/stable) based on recent performance. Include details on recent funding or last earnings reports if available.
-      6. News: Summarize 3 recent major news events affecting the company.
-      7. Executive Summary: A cohesive paragraph describing the company's current outlook.
-
-      OUTPUT INSTRUCTION:
-      You must return a valid JSON object matching the schema below. 
-      Ensure there are NO trailing commas.
-      Do not include markdown code blocks (e.g. \`\`\`json). 
-      Just return the raw JSON string.
-
-      Schema:
-      ${schemaString}
+      Schema: ${JSON.stringify(analysisSchema)}
     `;
 
     const response = await ai.models.generateContent({
       model: model,
       contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }], 
-      },
+      config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" },
     });
 
-    let text = response.text || "";
-    text = cleanJsonText(text);
-
-    const data = JSON.parse(text) as AnalysisResult;
-
-    // Sanitize data to prevent undefined array errors
-    if (!data.metrics) data.metrics = [];
-    if (!data.chartData) data.chartData = [];
-    if (!data.competitors) data.competitors = [];
-    if (!data.recentNews) data.recentNews = [];
-    
-    if (!data.swot) {
-        data.swot = { strengths: [], weaknesses: [], opportunities: [], threats: [] };
-    } else {
-        if (!data.swot.strengths) data.swot.strengths = [];
-        if (!data.swot.weaknesses) data.swot.weaknesses = [];
-        if (!data.swot.opportunities) data.swot.opportunities = [];
-        if (!data.swot.threats) data.swot.threats = [];
-    }
-
+    const data = JSON.parse(response.text) as AnalysisResult;
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-    const sourceUrls: string[] = [];
-    if (groundingChunks) {
-      groundingChunks.forEach(chunk => {
-        if (chunk.web?.uri) {
-          sourceUrls.push(chunk.web.uri);
-        }
-      });
-    }
-    data.sourceUrls = [...new Set(sourceUrls)];
+    data.sourceUrls = [...new Set(groundingChunks?.map(c => c.web?.uri).filter(Boolean) as string[])];
 
     return data;
-
-  } catch (error) {
-    handleGeminiError(error);
+  } catch (error: any) {
+    console.error(error);
+    throw new Error(error.message || "Analysis failure.");
   }
 };
 
 export const generateForecast = async (companyName: string): Promise<ForecastResult> => {
-    if (!apiKey) throw new Error("API Key missing");
+    if (!apiKey) throw new Error("API Key missing.");
 
     try {
-        const schemaString = JSON.stringify(forecastSchema);
+        const model = "gemini-3-flash-preview";
         const prompt = `
-            Act as a financial forecaster. Generate a 12-month stock price forecast for "${companyName}" with three scenarios: Optimistic (Bull case), Neutral (Base case), and Pessimistic (Bear case).
+            Forecast 12-month stock price scenarios for "${companyName}". 
+            Include optimistic, base, and pessimistic outcomes.
+            Return JSON only.
             
-            Requirements:
-            1. Start from the current approximate market price (in USD).
-            2. Provide 12 monthly data points for the future.
-            3. Provide a brief analysis explaining the drivers for these scenarios (e.g., pending regulation, product launches, market conditions).
-
-            OUTPUT INSTRUCTION:
-            Return valid JSON matching the schema below. No markdown.
-            Ensure there are NO trailing commas.
-
-            Schema:
-            ${schemaString}
+            Schema: ${JSON.stringify(forecastSchema)}
         `;
 
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: model,
             contents: prompt,
-            config: {
-                 tools: [{ googleSearch: {} }] // Use search to get current price and relevant future events
-            }
+            config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" }
         });
 
-        let text = response.text || "";
-        text = cleanJsonText(text);
-        const result = JSON.parse(text) as ForecastResult;
-        
-        // Sanitize forecast data
-        if (!result.chartData) result.chartData = [];
-        
-        return result;
-    } catch (error) {
-        handleGeminiError(error);
+        return JSON.parse(response.text) as ForecastResult;
+    } catch (error: any) {
+        console.error(error);
+        throw new Error("Forecast engine offline.");
     }
 };
-
-// Helper to clean JSON string from LLM response
-function cleanJsonText(text: string): string {
-    text = text.replace(/```json/g, '').replace(/```/g, '');
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        text = text.substring(firstBrace, lastBrace + 1);
-    }
-    // Remove trailing commas to prevent JSON.parse errors
-    // Regex: Match a comma, followed by optional whitespace, followed by a closing brace or bracket.
-    // Replace with just the closing brace/bracket (stripping the comma).
-    text = text.replace(/,(\s*[}\]])/g, '$1');
-    
-    return text.trim();
-}
