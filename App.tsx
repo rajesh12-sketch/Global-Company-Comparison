@@ -3,7 +3,6 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { analyzeCompany } from './services/geminiService';
 import { authService } from './services/authService';
 import { Dashboard } from './components/Dashboard';
-import { Auth } from './components/Auth';
 import { Portfolio } from './components/Portfolio';
 import { Forecasting } from './components/Forecasting';
 import { MarketExplorer } from './components/MarketExplorer';
@@ -18,11 +17,19 @@ import {
   ArrowPathIcon
 } from './components/Icons';
 
+const DEFAULT_USER: User = {
+  id: 'guest_analyst',
+  name: 'Senior Analyst',
+  email: 'analyst@global-data.io',
+  jobTitle: 'Investment Strategy Lead',
+  address: 'London, UK'
+};
+
 export default function App() {
   const [query, setQuery] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
-  const [state, setState] = useState<AppState>(AppState.SIGN_IN);
-  const [user, setUser] = useState<User | null>(null);
+  const [state, setState] = useState<AppState>(AppState.WORKSPACE);
+  const [user, setUser] = useState<User>(DEFAULT_USER);
   const [data, setData] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
@@ -31,12 +38,12 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
+    // Load persisted user if exists, otherwise use default
     const currentUser = authService.getCurrentUser();
     if (currentUser) {
       setUser(currentUser);
-      setState(AppState.WORKSPACE);
     } else {
-      setState(AppState.SIGN_IN);
+      authService.updateProfile(DEFAULT_USER);
     }
   }, []);
 
@@ -60,7 +67,6 @@ export default function App() {
       console.error(err);
       const msg = err.message || "Failed to analyze company.";
       setError(msg);
-      // Only go to global error state if it's a primary load or if soft refresh fails critically
       if (!isSoftRefresh) {
         setState(AppState.ERROR);
       }
@@ -87,21 +93,6 @@ export default function App() {
     }
   };
 
-  const handleSignOut = () => {
-    authService.signOut();
-    setUser(null);
-    setData(null);
-    setQuery('');
-    setActiveQuery('');
-    setState(AppState.SIGN_IN);
-    setIsMobileMenuOpen(false);
-  };
-
-  const handleAuthSuccess = (loggedInUser: User) => {
-    setUser(loggedInUser);
-    setState(AppState.WORKSPACE);
-  };
-  
   const handleUserUpdate = (updatedUser: User) => {
     setUser(updatedUser);
   };
@@ -158,10 +149,6 @@ export default function App() {
     );
   };
 
-  if (state === AppState.SIGN_IN || state === AppState.SIGN_UP) {
-    return <Auth state={state} onSwitchMode={setState} onSuccess={handleAuthSuccess} />;
-  }
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col md:flex-row font-sans selection:bg-primary-500/30 overflow-x-hidden">
       
@@ -173,7 +160,7 @@ export default function App() {
         />
       )}
 
-      {/* Sidebar - Fixes for 'slider' behavior */}
+      {/* Sidebar */}
       <aside 
         className={`fixed md:sticky top-0 left-0 flex flex-col bg-slate-900 border-r border-slate-800 h-screen z-[70] transition-all duration-300 ease-in-out shadow-2xl 
           ${isSidebarExpanded ? 'w-72' : 'w-20'} 
@@ -218,31 +205,26 @@ export default function App() {
             <NavItem label="AI Forecast" icon={BoltIcon} targetState={AppState.FORECASTING} />
           </div>
           <div className="space-y-1">
-            {(isSidebarExpanded || isMobileMenuOpen) && <div className="px-4 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">User</div>}
+            {(isSidebarExpanded || isMobileMenuOpen) && <div className="px-4 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">System</div>}
             <NavItem label="Account" icon={Cog6ToothIcon} targetState={AppState.ACCOUNT} />
           </div>
         </nav>
 
         <div className="p-4 border-t border-slate-800 bg-slate-900/50">
-          {user && (
-            <div 
-              className={`flex items-center rounded-xl hover:bg-slate-800 p-2 transition-all cursor-pointer group ${isSidebarExpanded ? 'gap-3' : 'justify-center'}`}
-              onClick={() => { setState(AppState.ACCOUNT); setIsMobileMenuOpen(false); }}
-            >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-primary-600 flex items-center justify-center text-sm font-bold text-white shrink-0">
-                 {user.name.charAt(0).toUpperCase()}
-              </div>
-              {(isSidebarExpanded || isMobileMenuOpen) && (
-                <div className="flex-1 overflow-hidden">
-                  <div className="text-sm font-semibold text-white truncate">{user.name}</div>
-                  <div className="text-[10px] text-slate-500 truncate">{user.email}</div>
-                </div>
-              )}
+          <div 
+            className={`flex items-center rounded-xl hover:bg-slate-800 p-2 transition-all cursor-pointer group ${isSidebarExpanded ? 'gap-3' : 'justify-center'}`}
+            onClick={() => { setState(AppState.ACCOUNT); setIsMobileMenuOpen(false); }}
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-primary-600 flex items-center justify-center text-sm font-bold text-white shrink-0">
+               {user.name.charAt(0).toUpperCase()}
             </div>
-          )}
-          {(isSidebarExpanded || isMobileMenuOpen) && (
-            <button onClick={handleSignOut} className="mt-2 w-full py-1 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-red-400 transition-colors">Sign Out</button>
-          )}
+            {(isSidebarExpanded || isMobileMenuOpen) && (
+              <div className="flex-1 overflow-hidden">
+                <div className="text-sm font-semibold text-white truncate">{user.name}</div>
+                <div className="text-[10px] text-slate-500 truncate">{user.email}</div>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
 
@@ -362,6 +344,15 @@ export default function App() {
           {state === AppState.PORTFOLIO && <Portfolio onSelectCompany={performAnalysis} />}
           {state === AppState.FORECASTING && <Forecasting initialCompany={activeQuery} />}
         </div>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800 z-50 flex items-center px-2">
+           <NavItem label="Home" icon={HomeIcon} targetState={AppState.LANDING} mobile />
+           <NavItem label="Work" icon={Squares2X2Icon} targetState={AppState.WORKSPACE} mobile />
+           <NavItem label="Scan" icon={BuildingLibraryIcon} targetState={AppState.MARKETS} mobile />
+           <NavItem label="Vault" icon={BriefcaseIcon} targetState={AppState.PORTFOLIO} mobile />
+           <NavItem label="Account" icon={Cog6ToothIcon} targetState={AppState.ACCOUNT} mobile />
+        </nav>
       </main>
 
       <style>{`

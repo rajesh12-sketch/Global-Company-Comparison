@@ -1,3 +1,4 @@
+
 // Data Models
 
 export interface FinancialMetric {
@@ -92,8 +93,6 @@ export interface ForecastResult {
 }
 
 export enum AppState {
-  SIGN_IN,
-  SIGN_UP,
   LANDING,
   WORKSPACE,
   ACCOUNT,
@@ -102,5 +101,7 @@ export enum AppState {
   MARKETS,
   PORTFOLIO,
   FORECASTING,
-  ERROR
+  ERROR,
+  SIGN_IN,
+  SIGN_UP
 }
