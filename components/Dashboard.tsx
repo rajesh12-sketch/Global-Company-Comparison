@@ -13,6 +13,8 @@ import {
 interface DashboardProps {
   data: AnalysisResult;
   onRefresh: () => void;
+  isRefreshing: boolean;
+  refreshError: string | null;
 }
 
 const MetricCard: React.FC<{ metric: FinancialMetric }> = ({ metric }) => {
@@ -264,7 +266,7 @@ const ComparisonModal = ({ isOpen, onClose, currentData }: { isOpen: boolean, on
   );
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh, isRefreshing, refreshError }) => {
   const [inPortfolio, setInPortfolio] = useState(portfolioService.isInPortfolio(data.profile.ticker));
   const [showCompare, setShowCompare] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -297,6 +299,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
     <div className="space-y-6 md:space-y-10 pb-24 animate-fade-in relative">
       <ProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} data={data} />
       <ComparisonModal isOpen={showCompare} onClose={() => setShowCompare(false)} currentData={data} />
+
+      {/* Local Error Notification */}
+      {refreshError && (
+        <div className="sticky top-4 z-[55] animate-fade-in mb-6">
+          <div className="bg-red-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center justify-between border border-white/20">
+             <div className="flex items-center gap-3">
+                <XMarkIcon className="w-5 h-5" />
+                <span className="text-sm font-bold tracking-tight">Intelligence update interrupted: {refreshError}</span>
+             </div>
+             <button 
+               onClick={onRefresh} 
+               className="bg-white/20 hover:bg-white/30 px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-colors"
+             >
+                Retry Update
+             </button>
+          </div>
+        </div>
+      )}
 
       {/* Hero Header */}
       <div className="flex flex-col xl:flex-row gap-8 items-start xl:items-center justify-between border-b border-slate-800 pb-10">
@@ -338,8 +358,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh }) => {
               </div>
             )}
           </div>
-          <button onClick={onRefresh} className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 border border-slate-800 hover:border-primary-500/50 rounded-2xl text-sm font-bold text-slate-400 transition-all">
-            <ArrowPathIcon className="w-5 h-5" /> Refresh
+          <button 
+            onClick={onRefresh} 
+            disabled={isRefreshing}
+            className={`flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 border border-slate-800 hover:border-primary-500/50 rounded-2xl text-sm font-bold text-slate-400 transition-all disabled:opacity-50`}
+          >
+            <ArrowPathIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} /> {isRefreshing ? 'Updating...' : 'Refresh'}
           </button>
         </div>
       </div>
