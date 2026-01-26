@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { AppState, User } from '../types';
-import { authService } from '../services/authService';
-import { GlobeIcon, BoltIcon } from './Icons';
+import { AppState, User } from '../types.ts';
+import { authService } from '../services/authService.ts';
+import { GlobeIcon, BoltIcon } from './Icons.tsx';
 
 // Social Media Icons
 const GoogleIcon = () => (
@@ -33,9 +33,10 @@ interface AuthProps {
   state: AppState.SIGN_IN | AppState.SIGN_UP;
   onSwitchMode: (mode: AppState.SIGN_IN | AppState.SIGN_UP) => void;
   onSuccess: (user: User) => void;
+  onCancel?: () => void;
 }
 
-export const Auth: React.FC<AuthProps> = ({ state, onSwitchMode, onSuccess }) => {
+export const Auth: React.FC<AuthProps> = ({ state, onSwitchMode, onSuccess, onCancel }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -70,21 +71,14 @@ export const Auth: React.FC<AuthProps> = ({ state, onSwitchMode, onSuccess }) =>
     setLoading(true);
     
     try {
-        // Simulate a network delay for realism
         await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Create a mock user based on the provider
         const socialUser: User = {
             id: `social-${Date.now()}`,
             name: `${provider} User`,
             email: `user@${provider.toLowerCase()}.com`
         };
-        
-        // In a real app, this would redirect to OAuth provider
-        // For this demo, we'll just log them in immediately using our mock auth service logic
         localStorage.setItem('global_comp_session', JSON.stringify(socialUser));
         onSuccess(socialUser);
-
     } catch (err) {
         setError(`Failed to authenticate with ${provider}`);
     } finally {
@@ -93,66 +87,66 @@ export const Auth: React.FC<AuthProps> = ({ state, onSwitchMode, onSuccess }) =>
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Ambience */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-600/20 rounded-full blur-3xl opacity-50 mix-blend-screen animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl opacity-50 mix-blend-screen"></div>
-      </div>
-
-      <div className="w-full max-w-md bg-slate-950/80 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl p-8 relative z-10 animate-fade-in">
+    <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-2xl flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-[0_0_100px_rgba(0,0,0,0.5)] p-8 relative overflow-hidden animate-fade-in">
+        {onCancel && (
+          <button onClick={onCancel} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
+            <BoltIcon className="w-6 h-6 rotate-45" />
+          </button>
+        )}
+        
         <div className="text-center mb-8">
-          <div className="inline-flex p-3 bg-gradient-to-tr from-primary-500 to-indigo-600 rounded-xl shadow-lg mb-4">
-            <GlobeIcon className="w-8 h-8 text-white" />
+          <div className="inline-flex p-3 bg-primary-400/10 rounded-2xl shadow-lg mb-4 border border-primary-400/20">
+            <GlobeIcon className="w-8 h-8 text-primary-400" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            {isSignUp ? 'Create an Account' : 'Welcome Back'}
+          <h1 className="text-2xl font-black text-white tracking-tight">
+            {isSignUp ? 'Establish Identity' : 'Authorized Access'}
           </h1>
-          <p className="text-slate-400 text-sm mt-2">
-            {isSignUp ? 'Join the global analysis platform' : 'Sign in to access your dashboard'}
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mt-2">
+            {isSignUp ? 'Join the Global Analytics Dossier' : 'Resuming Encrypted Session'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center font-bold">
               {error}
             </div>
           )}
 
           {isSignUp && (
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Full Name</label>
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Full Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all placeholder:text-slate-600"
-                placeholder="John Doe"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary-500 transition-all placeholder:text-slate-800"
+                placeholder="Senior Analyst Name"
                 required={isSignUp}
               />
             </div>
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Email Address</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Email Vector</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all placeholder:text-slate-600"
-              placeholder="name@company.com"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary-500 transition-all placeholder:text-slate-800"
+              placeholder="analyst@global-intel.io"
               required
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Password</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Secure Passkey</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all placeholder:text-slate-600"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary-500 transition-all placeholder:text-slate-800"
               placeholder="••••••••"
               required
             />
@@ -161,81 +155,40 @@ export const Auth: React.FC<AuthProps> = ({ state, onSwitchMode, onSuccess }) =>
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary-600 hover:bg-primary-500 text-white font-semibold py-3 rounded-lg shadow-lg shadow-primary-900/50 transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mt-6 flex items-center justify-center gap-2"
+            className="w-full bg-primary-600 hover:bg-primary-500 text-white font-black uppercase tracking-widest text-xs py-4 rounded-xl shadow-xl shadow-primary-900/20 transition-all active:scale-95 disabled:opacity-50 mt-6 flex items-center justify-center gap-2"
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
             ) : (
               <>
-                {isSignUp ? 'Sign Up' : 'Sign In'}
+                {isSignUp ? 'Create Dossier' : 'Authorize Login'}
                 <BoltIcon className="w-4 h-4" />
               </>
             )}
           </button>
         </form>
 
-        {/* Social Login Divider & Buttons */}
         <div className="my-6 flex items-center">
             <div className="flex-1 border-t border-slate-800"></div>
-            <span className="px-4 text-xs text-slate-500 font-medium uppercase tracking-wider">Or continue with</span>
+            <span className="px-4 text-[9px] text-slate-600 font-black uppercase tracking-[0.2em]">Partner Sync</span>
             <div className="flex-1 border-t border-slate-800"></div>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-            <button 
-                type="button" 
-                onClick={() => handleSocialLogin('Google')} 
-                disabled={loading}
-                className="flex items-center justify-center p-2.5 bg-slate-900 border border-slate-800 rounded-lg hover:bg-slate-800 hover:border-slate-700 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Sign in with Google"
-            >
-                <GoogleIcon />
-            </button>
-            <button 
-                type="button" 
-                onClick={() => handleSocialLogin('Microsoft')} 
-                disabled={loading}
-                className="flex items-center justify-center p-2.5 bg-slate-900 border border-slate-800 rounded-lg hover:bg-slate-800 hover:border-slate-700 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Sign in with Microsoft"
-            >
-                <MicrosoftIcon />
-            </button>
-            <button 
-                type="button" 
-                onClick={() => handleSocialLogin('Apple')} 
-                disabled={loading}
-                className="flex items-center justify-center p-2.5 bg-slate-900 border border-slate-800 rounded-lg hover:bg-slate-800 hover:border-slate-700 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Sign in with Apple"
-            >
-                <AppleIcon />
-            </button>
+            <button onClick={() => handleSocialLogin('Google')} className="flex items-center justify-center p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-slate-600 transition-all"><GoogleIcon /></button>
+            <button onClick={() => handleSocialLogin('Microsoft')} className="flex items-center justify-center p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-slate-600 transition-all"><MicrosoftIcon /></button>
+            <button onClick={() => handleSocialLogin('Apple')} className="flex items-center justify-center p-3 bg-slate-950 border border-slate-800 rounded-xl hover:border-slate-600 transition-all"><AppleIcon /></button>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-slate-800 text-center">
-          <p className="text-slate-500 text-sm">
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <button
-              onClick={() => {
-                setError(null);
-                onSwitchMode(isSignUp ? AppState.SIGN_IN : AppState.SIGN_UP);
-              }}
-              className="text-primary-400 hover:text-primary-300 font-semibold transition-colors"
-            >
-              {isSignUp ? 'Sign In' : 'Sign Up'}
-            </button>
-          </p>
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => onSwitchMode(isSignUp ? AppState.SIGN_IN : AppState.SIGN_UP)}
+            className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-primary-400 transition-colors"
+          >
+            {isSignUp ? 'Already registered? Login' : 'Need authorization? Sign Up'}
+          </button>
         </div>
       </div>
-      
-      <style>{`
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 };

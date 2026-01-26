@@ -7,6 +7,7 @@ import { Forecasting } from './components/Forecasting.tsx';
 import { MarketExplorer } from './components/MarketExplorer.tsx';
 import { Workspace } from './components/Workspace.tsx';
 import { Account } from './components/Account.tsx';
+import { Auth } from './components/Auth.tsx';
 import { AppState, AnalysisResult, User } from './types.ts';
 import { 
   SearchIcon, GlobeIcon, ChartBarIcon, BoltIcon, 
@@ -87,8 +88,6 @@ export default function App() {
     const currentUser = authService.getCurrentUser();
     if (currentUser) {
       setUser(currentUser);
-    } else {
-      authService.updateProfile(DEFAULT_USER).then(u => setUser(u)).catch(() => {});
     }
   }, []);
 
@@ -157,8 +156,14 @@ export default function App() {
     setUser(updatedUser);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('global_comp_session');
+    setUser(DEFAULT_USER);
+    setState(AppState.LANDING);
+  };
+
   const NavItem = ({ label, icon: Icon, targetState, active, onClick, mobile }: { label: string, icon: any, targetState?: AppState, active?: boolean, onClick?: () => void, mobile?: boolean }) => {
-    const isActive = active || state === targetState;
+    const isActive = active || (targetState !== undefined && state === targetState);
     
     if (mobile) {
       return (
@@ -206,6 +211,16 @@ export default function App() {
         <div 
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden animate-fade-in" 
           onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Render Auth Screen if in Auth state */}
+      {(state === AppState.SIGN_IN || state === AppState.SIGN_UP) && (
+        <Auth 
+          state={state as any} 
+          onSwitchMode={(m) => setState(m)} 
+          onSuccess={(u) => { setUser(u); setState(AppState.WORKSPACE); }} 
+          onCancel={() => setState(AppState.LANDING)}
         />
       )}
 
@@ -269,7 +284,7 @@ export default function App() {
           {isSidebarExpanded && (
             <div className="mt-4 px-2 text-[9px] text-slate-600 font-medium leading-tight">
                © 2025 Global Analytics. <br />
-               Conceptualized and Owned by the Developer. All Rights Reserved.
+               Strategic Intel Platform.
             </div>
           )}
         </div>
@@ -282,7 +297,7 @@ export default function App() {
             <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 text-slate-400 hover:text-white">
               <Bars3Icon className="w-5 h-5" />
             </button>
-            <h1 className="text-lg font-bold text-white tracking-tight hidden sm:block">Professional Dossier Hub</h1>
+            <h1 className="text-lg font-bold text-white tracking-tight hidden sm:block">Intel Repository</h1>
           </div>
 
           <div className="flex-1 max-w-xl mx-auto px-4 hidden md:block">
@@ -294,7 +309,7 @@ export default function App() {
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Search global stocks..."
+                      placeholder="Identify corporate entity..."
                       className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary-400/50 transition-all"
                     />
                  </div>
@@ -332,7 +347,6 @@ export default function App() {
           
           {state === AppState.LANDING && (
             <div className="flex flex-col items-center pt-2 md:pt-4 animate-fade-in relative">
-              {/* TOP LIVE INTELLIGENCE BAR */}
               <div className="w-full max-w-5xl bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-2xl p-4 mb-10 flex flex-wrap items-center justify-between gap-6 shadow-xl ring-1 ring-white/5 no-print">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -344,15 +358,12 @@ export default function App() {
                     Neural Nodes: <span className="text-white">Active (128)</span>
                   </div>
                 </div>
-                
                 <div className="hidden lg:block flex-1 max-w-md border-x border-slate-800 px-6 overflow-hidden">
                   <MarketTicker />
                 </div>
-
                 <GlobalClocks />
               </div>
 
-              {/* BRAND WATERMARK BACKGROUND */}
               <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none z-0 overflow-hidden">
                  <GALogo className="w-[80vw] h-[80vw] translate-y-[-10%]" />
               </div>
@@ -385,6 +396,11 @@ export default function App() {
                   </button>
                 </div>
 
+                <div className="flex gap-4 justify-center mb-16">
+                   <button onClick={() => setState(AppState.SIGN_IN)} className="px-10 py-4 bg-slate-900 border border-slate-800 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-slate-800 transition-all active:scale-95 shadow-2xl">Authorized Analyst Login</button>
+                   <button onClick={() => setState(AppState.WORKSPACE)} className="px-10 py-4 bg-primary-600/10 border border-primary-400/20 text-primary-400 font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-primary-600/20 transition-all active:scale-95 shadow-2xl">Guest Observation Deck</button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
                   <div className="p-8 bg-slate-900/60 border border-slate-800 rounded-[2.5rem] backdrop-blur-sm hover:border-primary-400/30 transition-all group">
                     <div className="w-12 h-12 bg-primary-400/10 rounded-2xl flex items-center justify-center mb-6 border border-primary-400/20 group-hover:scale-110 transition-transform">
@@ -409,7 +425,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* UPDATED COPYRIGHT FOOTER */}
                 <div className="mt-20 py-10 border-t border-slate-800/50 flex flex-col items-center gap-4">
                   <GALogo className="w-12 h-12 opacity-30" />
                   <div className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-600">
@@ -458,7 +473,7 @@ export default function App() {
           )}
 
           {state === AppState.WORKSPACE && <Workspace user={user} onNavigate={handleWorkspaceNavigate} />}
-          {state === AppState.ACCOUNT && user && <Account user={user} onUpdateUser={handleUserUpdate} onBack={() => setState(AppState.WORKSPACE)} />}
+          {state === AppState.ACCOUNT && user && <Account user={user} onUpdateUser={handleUserUpdate} onBack={() => setState(AppState.WORKSPACE)} onLogout={handleLogout} />}
           {state === AppState.DASHBOARD && data && <Dashboard data={data} onRefresh={handleRefresh} isRefreshing={isRefreshing} refreshError={error} />}
           {state === AppState.MARKETS && <MarketExplorer onSelect={performAnalysis} />}
           {state === AppState.PORTFOLIO && <Portfolio onSelectCompany={performAnalysis} />}
