@@ -1,5 +1,82 @@
-
 import React from 'react';
+
+export const GALogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <defs>
+      <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#D4AF37" />
+        <stop offset="50%" stopColor="#F5DEB3" />
+        <stop offset="100%" stopColor="#B8860B" />
+      </linearGradient>
+      <linearGradient id="blackGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#222" />
+        <stop offset="100%" stopColor="#000" />
+      </linearGradient>
+    </defs>
+    
+    {/* Stylized G */}
+    <path 
+      d="M285 132 C210 132, 148 194, 148 272 C148 350, 210 412, 285 412 L350 412 V358 L285 358 C240 358, 202 320, 202 272 C202 224, 240 186, 285 186 L340 186 V132 Z" 
+      fill="url(#blackGrad)" 
+      stroke="#D4AF37" 
+      strokeWidth="1"
+    />
+    
+    {/* Gold Grid inside G */}
+    <g transform="translate(230, 220) scale(1.1)">
+      <rect x="0" y="0" width="22" height="22" fill="url(#goldGrad)" rx="2" />
+      <rect x="28" y="0" width="22" height="22" fill="url(#goldGrad)" rx="2" />
+      <rect x="56" y="0" width="22" height="22" fill="url(#goldGrad)" rx="2" />
+      
+      <rect x="0" y="28" width="22" height="22" fill="url(#goldGrad)" rx="2" />
+      <rect x="28" y="28" width="22" height="22" fill="url(#goldGrad)" rx="2" />
+      <rect x="56" y="28" width="22" height="22" fill="url(#goldGrad)" rx="2" />
+      
+      <rect x="0" y="56" width="22" height="22" fill="url(#goldGrad)" rx="2" />
+      <rect x="28" y="56" width="22" height="22" fill="url(#goldGrad)" rx="2" />
+      <rect x="56" y="56" width="22" height="22" fill="url(#goldGrad)" rx="2" />
+    </g>
+    
+    {/* Stylized A */}
+    <path 
+      d="M360 412 L440 132 L520 412 H465 L440 325 L415 412 Z" 
+      fill="url(#goldGrad)" 
+    />
+    
+    {/* Mountain Silhouette inside A */}
+    <path 
+      d="M440 200 L410 412 H470 L440 200 Z" 
+      fill="#000" 
+    />
+    <path 
+      d="M440 250 L425 412 H455 L440 250 Z" 
+      fill="url(#goldGrad)" 
+      opacity="0.4"
+    />
+
+    {/* Typography */}
+    <text 
+      x="50%" 
+      y="475" 
+      textAnchor="middle" 
+      fill="url(#goldGrad)" 
+      style={{ fontSize: '74px', fontWeight: 'bold', fontFamily: 'serif', letterSpacing: '4px' }}
+    >
+      GLOBAL
+    </text>
+    <text 
+      x="50%" 
+      y="545" 
+      textAnchor="middle" 
+      fill="#000" 
+      stroke="#D4AF37"
+      strokeWidth="0.5"
+      style={{ fontSize: '38px', fontWeight: 'bold', fontFamily: 'sans-serif', letterSpacing: '14px' }}
+    >
+      ANALYTICS
+    </text>
+  </svg>
+);
 
 export const SearchIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>

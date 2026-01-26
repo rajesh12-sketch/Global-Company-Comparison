@@ -1,18 +1,18 @@
-
 import React, { useState, useEffect } from 'react';
 import { generateForecast } from '../services/geminiService.ts';
 import { ForecastResult } from '../types.ts';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { BoltIcon, ArrowPathIcon } from './Icons.tsx';
+import { BoltIcon, XMarkIcon } from './Icons.tsx';
 
 interface ForecastingProps {
   initialCompany: string;
 }
 
 const ForecastChart: React.FC<{ data: any[] }> = ({ data }) => {
+    if (!data || data.length === 0) return <div className="h-80 w-full flex items-center justify-center text-slate-600">No projections available</div>;
     return (
-      <div className="h-80 w-full">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-80 w-full min-h-[320px]">
+        <ResponsiveContainer width="100%" height="100%" minHeight={320}>
           <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
             <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -22,9 +22,9 @@ const ForecastChart: React.FC<{ data: any[] }> = ({ data }) => {
                 itemStyle={{ fontSize: '12px' }}
             />
             <Legend verticalAlign="top" height={36}/>
-            <Line type="monotone" dataKey="optimistic" name="Bull Case" stroke="#34d399" strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="neutral" name="Base Case" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-            <Line type="monotone" dataKey="pessimistic" name="Bear Case" stroke="#f87171" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="optimistic" name="Bull Case" stroke="#34d399" strokeWidth={3} dot={false} animationDuration={1500} />
+            <Line type="monotone" dataKey="neutral" name="Base Case" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 5" dot={false} animationDuration={1500} />
+            <Line type="monotone" dataKey="pessimistic" name="Bear Case" stroke="#f87171" strokeWidth={3} dot={false} animationDuration={1500} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -45,7 +45,7 @@ export const Forecasting: React.FC<ForecastingProps> = ({ initialCompany }) => {
             const data = await generateForecast(name);
             setResult(data);
         } catch (err: any) {
-            setError(err.message || "Failed to generate forecast");
+            setError(err.message || "Failed to generate AI forecast model");
         } finally {
             setLoading(false);
         }
@@ -53,6 +53,7 @@ export const Forecasting: React.FC<ForecastingProps> = ({ initialCompany }) => {
 
     useEffect(() => {
         if (initialCompany) {
+            setCompany(initialCompany);
             runForecast(initialCompany);
         }
     }, [initialCompany]);
@@ -66,66 +67,72 @@ export const Forecasting: React.FC<ForecastingProps> = ({ initialCompany }) => {
         <div className="space-y-6 pb-20 animate-fade-in max-w-5xl mx-auto">
              <div className="border-b border-slate-800 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-2">
+                    <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
                         <BoltIcon className="w-8 h-8 text-yellow-400" /> 
-                        AI Forecasting
+                        Predictive AI Forecasting
                     </h1>
-                    <p className="text-slate-400 mt-2">Generate 12-month projected scenarios based on current market drivers.</p>
+                    <p className="text-slate-400 mt-2 font-medium">12-month projected valuation scenarios based on real-time neural modelling.</p>
                 </div>
                 <form onSubmit={handleSubmit} className="flex gap-2 w-full md:w-auto">
                     <input 
                         type="text" 
                         value={company}
                         onChange={(e) => setCompany(e.target.value)}
-                        placeholder="Company Name or Ticker"
-                        className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500 w-full md:w-64"
+                        placeholder="Company or Ticker"
+                        className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-primary-500 w-full md:w-64"
                     />
                     <button 
                         type="submit" 
                         disabled={loading || !company}
-                        className="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap"
+                        className="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white px-6 py-2 rounded-xl font-black uppercase tracking-widest transition-all whitespace-nowrap active:scale-95 shadow-lg shadow-primary-900/30"
                     >
-                        {loading ? 'Running...' : 'Run Forecast'}
+                        {loading ? 'Predicting...' : 'Run Forecast'}
                     </button>
                 </form>
             </div>
 
             {!initialCompany && !result && !loading && (
-                <div className="text-center py-20 text-slate-500">
-                    <p>Enter a company name above to generate a financial forecast.</p>
+                <div className="text-center py-24 bg-slate-900/40 rounded-[3rem] border border-slate-800/50">
+                    <BoltIcon className="w-16 h-16 text-slate-800 mx-auto mb-6" />
+                    <p className="text-slate-500 font-bold uppercase tracking-widest">Enter a company name above to generate scenario modelling</p>
                 </div>
             )}
 
             {loading && (
-                <div className="flex flex-col items-center justify-center py-20">
-                     <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                     <p className="text-slate-400">Crunching market numbers...</p>
+                <div className="flex flex-col items-center justify-center py-24 text-center">
+                     <div className="w-16 h-16 border-t-2 border-primary-500 rounded-full animate-spin mb-8"></div>
+                     <h2 className="text-xl font-black text-white mb-2">Simulating Market Variables</h2>
+                     <p className="text-slate-500 uppercase font-black text-[10px] tracking-[0.2em]">Neural engines active for {company}...</p>
                 </div>
             )}
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg text-center">
-                    {error}
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-8 rounded-[2rem] text-center shadow-2xl">
+                    <XMarkIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-black mb-1">Forecast Engine Error</h3>
+                    <p className="text-sm opacity-80">{error}</p>
                 </div>
             )}
 
             {result && !loading && (
                 <div className="space-y-6 animate-fade-in">
-                    <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-white">{result.companyName}: 12-Month Price Targets</h2>
-                            <div className="flex gap-4 text-xs">
-                                <span className="flex items-center gap-1 text-slate-400"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> Bull</span>
-                                <span className="flex items-center gap-1 text-slate-400"><span className="w-2 h-2 rounded-full bg-slate-400"></span> Base</span>
-                                <span className="flex items-center gap-1 text-slate-400"><span className="w-2 h-2 rounded-full bg-red-400"></span> Bear</span>
+                    <div className="bg-slate-800 rounded-3xl border border-slate-700 p-8 shadow-2xl min-h-[440px]">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                            <h2 className="text-2xl font-black text-white">{result.companyName}: Valuation Targets</h2>
+                            <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest">
+                                <span className="flex items-center gap-2 text-emerald-400 bg-emerald-400/10 px-3 py-1 rounded-lg">Optimistic</span>
+                                <span className="flex items-center gap-2 text-slate-400 bg-slate-400/10 px-3 py-1 rounded-lg">Base Case</span>
+                                <span className="flex items-center gap-2 text-red-400 bg-red-400/10 px-3 py-1 rounded-lg">Pessimistic</span>
                             </div>
                         </div>
-                        <ForecastChart data={result.chartData} />
+                        <div className="h-80 w-full">
+                           <ForecastChart data={result.chartData} />
+                        </div>
                     </div>
 
-                    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
-                        <h3 className="text-lg font-semibold text-white mb-3">AI Scenario Analysis</h3>
-                        <p className="text-slate-300 leading-relaxed text-sm">
+                    <div className="bg-slate-900/60 rounded-3xl border border-slate-800 p-8">
+                        <h3 className="text-xs font-black text-primary-400 mb-6 uppercase tracking-[0.3em]">AI Scenario Qualitative Analysis</h3>
+                        <p className="text-slate-300 leading-relaxed text-base font-medium">
                             {result.analysis}
                         </p>
                     </div>

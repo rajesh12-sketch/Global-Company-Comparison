@@ -29,7 +29,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ user, onNavigate }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-800 pb-8 gap-6">
         <div className="space-y-2">
           <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter">
-            System Online, <span className="text-primary-500">{user?.name.split(' ')[0] || 'Analyst'}</span>
+            System Online, <span className="text-primary-500">{user?.name?.split(' ')[0] || 'Analyst'}</span>
           </h1>
           <p className="text-slate-500 text-sm md:text-base font-medium tracking-tight uppercase tracking-widest opacity-60">Aggregate Global Market Intelligence</p>
         </div>
@@ -136,7 +136,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ user, onNavigate }) => {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {portfolioSummary.map(item => (
+                        {portfolioSummary.map(item => item && (
                             <div key={item.ticker} className="flex justify-between items-center p-4 bg-slate-950/50 rounded-2xl border border-slate-800 hover:border-slate-600 transition-all cursor-pointer" onClick={() => onNavigate('PORTFOLIO')}>
                                 <div>
                                     <div className="font-black text-white text-sm tracking-tight">{item.ticker}</div>

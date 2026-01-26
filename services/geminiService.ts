@@ -1,11 +1,9 @@
-
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, ForecastResult } from "../types.ts";
 
-const apiKey = process.env.API_KEY;
-const ai = new GoogleGenAI({ apiKey: apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const analysisSchema: Schema = {
+const analysisSchema = {
   type: Type.OBJECT,
   properties: {
     profile: {
@@ -91,7 +89,7 @@ const analysisSchema: Schema = {
   required: ["profile", "metrics", "chartData", "swot", "competitors", "recentNews", "executiveSummary"],
 };
 
-const forecastSchema: Schema = {
+const forecastSchema = {
     type: Type.OBJECT,
     properties: {
         companyName: { type: Type.STRING },
@@ -113,58 +111,72 @@ const forecastSchema: Schema = {
     required: ["companyName", "chartData", "analysis"]
 };
 
+/**
+ * Sanitizes the AI output to ensure it's a valid JSON string.
+ */
+const cleanJsonResponse = (text: string): string => {
+  let cleaned = text.trim();
+  // Remove markdown code block markers if present
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+  }
+  // Try to find the first '{' and last '}' to isolate the JSON object
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+  return cleaned;
+};
+
 export const analyzeCompany = async (companyName: string): Promise<AnalysisResult> => {
-  if (!apiKey) throw new Error("API Key missing.");
-
   try {
-    const model = "gemini-3-flash-preview";
-    const prompt = `
-      Act as a Lead Financial Analyst. Produce a complete real-time intelligence briefing for "${companyName}".
-      Use Google Search to verify latest fiscal reports, news, and stock prices.
-      Return JSON only.
-      
-      Schema: ${JSON.stringify(analysisSchema)}
-    `;
-
     const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" },
+      model: 'gemini-3-flash-preview',
+      contents: `You are a Senior Investment Strategist. Access the global market dossier for "${companyName}". 
+      TASKS:
+      1. CRITICAL: Use Google Search to find the most recent available quarterly fiscal reports, current stock price, and top news from the last 30 days.
+      2. Construct a detailed SWOT analysis.
+      3. Identify 3 primary market competitors.
+      4. If real-time data for small or private companies is limited, search for news, funding rounds, or similar sector benchmarks to provide a high-confidence dossier.
+      IMPORTANT: Return the response strictly as valid JSON according to the schema provided. No conversational text.`,
+      config: { 
+        tools: [{ googleSearch: {} }], 
+        responseMimeType: "application/json",
+        responseSchema: analysisSchema
+      },
     });
 
-    const data = JSON.parse(response.text) as AnalysisResult;
+    const cleanText = cleanJsonResponse(response.text);
+    const data = JSON.parse(cleanText) as AnalysisResult;
+    
+    // Process grounding URLs
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     data.sourceUrls = [...new Set(groundingChunks?.map(c => c.web?.uri).filter(Boolean) as string[])];
-
+    
     return data;
   } catch (error: any) {
-    console.error(error);
-    throw new Error(error.message || "Analysis failure.");
+    console.error('Gemini Analysis Error:', error);
+    throw new Error("Financial analysis engine failed to decrypt data. The company may be too small for real-time tracking or the dossier is restricted.");
   }
 };
 
 export const generateForecast = async (companyName: string): Promise<ForecastResult> => {
-    if (!apiKey) throw new Error("API Key missing.");
-
     try {
-        const model = "gemini-3-flash-preview";
-        const prompt = `
-            Forecast 12-month stock price scenarios for "${companyName}". 
-            Include optimistic, base, and pessimistic outcomes.
-            Return JSON only.
-            
-            Schema: ${JSON.stringify(forecastSchema)}
-        `;
-
         const response = await ai.models.generateContent({
-            model: model,
-            contents: prompt,
-            config: { tools: [{ googleSearch: {} }], responseMimeType: "application/json" }
+            model: 'gemini-3-flash-preview',
+            contents: `Predict 12-month stock price scenarios (Optimistic, Neutral, Pessimistic) for "${companyName}". Use real-time market volatility data from Google Search. Output JSON only.`,
+            config: { 
+              tools: [{ googleSearch: {} }], 
+              responseMimeType: "application/json",
+              responseSchema: forecastSchema
+            }
         });
-
-        return JSON.parse(response.text) as ForecastResult;
+        
+        const cleanText = cleanJsonResponse(response.text);
+        return JSON.parse(cleanText) as ForecastResult;
     } catch (error: any) {
-        console.error(error);
-        throw new Error("Forecast engine offline.");
+        console.error('Gemini Forecast Error:', error);
+        throw new Error("AI forecast engine currently offline. Market volatility exceeds simulation bounds.");
     }
 };
