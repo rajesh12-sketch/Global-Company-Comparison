@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { AnalysisResult, FinancialMetric, NewsItem, Competitor, PortfolioItem } from '../types.ts';
 import { FinancialChart, SWOTRadarChart } from './Charts.tsx';
 import { portfolioService } from '../services/portfolioService.ts';
@@ -347,9 +349,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onRefresh, isRefresh
 
   if (!data) return null;
 
-  const handleExport = (type: 'json' | 'csv' | 'pdf' | 'swot') => {
+  const dashboardRef = useRef<HTMLDivElement>(null);
+
+  const handleExport = async (type: 'json' | 'csv' | 'pdf' | 'swot') => {
     if (type === 'pdf') {
-      window.print();
+      if (!dashboardRef.current) return;
+      
+      try {
+        const canvas = await html2canvas(dashboardRef.current, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#020617', // slate-950
+          logging: false,
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [canvas.width, canvas.height]
+        });
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`${data.profile?.ticker || 'analysis'}_report.pdf`);
+      } catch (error) {
+        console.error('PDF Generation Error:', error);
+        window.print(); // Fallback
+      }
     } else if (type === 'json') {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -396,7 +422,7 @@ ${data.swot?.threats?.map(t => `[!] ${t}`).join('\n') || 'N/A'}
       <ProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} data={data} />
       <ComparisonModal isOpen={showCompare} onClose={() => setShowCompare(false)} currentData={data} />
 
-      <div className="space-y-6 md:space-y-10 pb-24 animate-fade-in relative">
+      <div ref={dashboardRef} className="space-y-6 md:space-y-10 pb-24 animate-fade-in relative">
         {/* Prominent Overlay Error Banner */}
         {refreshError && (
           <div className="sticky top-4 z-[55] animate-fade-in mb-8">

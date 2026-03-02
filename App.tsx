@@ -83,16 +83,34 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [needsApiKey, setNeedsApiKey] = useState(false);
 
   useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    }
+    const checkApiKey = async () => {
+      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+        const hasKey = await window.aistudio.hasSelectedApiKey();
+        setNeedsApiKey(!hasKey);
+      }
+    };
+    checkApiKey();
   }, []);
+
+  const handleOpenKeyDialog = async () => {
+    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+      await window.aistudio.openSelectKey();
+      setNeedsApiKey(false);
+      // After selection, we might need to restart or just retry
+      if (activeQuery) performAnalysis(activeQuery);
+    }
+  };
 
   const performAnalysis = async (companyName: string, isSoftRefresh: boolean = false) => {
     if (!companyName || !companyName.trim()) return;
+
+    if (needsApiKey) {
+      handleOpenKeyDialog();
+      return;
+    }
 
     if (!isSoftRefresh) {
       setState(AppState.LOADING);
@@ -455,6 +473,20 @@ export default function App() {
                </div>
                <h2 className="text-3xl font-black text-white mb-3 tracking-tight">Sync Failure</h2>
                <p className="text-red-400 text-base max-w-md mb-12 leading-relaxed font-medium">{error}</p>
+               
+               {error?.toLowerCase().includes('api key') && (
+                 <div className="mb-8 p-4 bg-primary-400/10 border border-primary-400/20 rounded-2xl max-w-md">
+                   <p className="text-primary-400 text-sm mb-4 font-bold">It looks like your Gemini API key is missing or invalid. You need to select a valid API key from a paid Google Cloud project.</p>
+                   <button 
+                     onClick={handleOpenKeyDialog}
+                     className="px-6 py-2 bg-primary-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-widest hover:bg-primary-300 transition-all"
+                   >
+                     Select API Key
+                   </button>
+                   <p className="mt-2 text-[10px] text-slate-500">Note: You must have billing enabled on your Google Cloud project.</p>
+                 </div>
+               )}
+
                <div className="flex flex-col sm:flex-row gap-4">
                   <button 
                     onClick={() => performAnalysis(activeQuery || query)} 
