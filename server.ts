@@ -124,16 +124,9 @@ app.post("/api/analyze", async (req, res) => {
 
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   
-  // Diagnostic logging (safe)
-  console.log(`[Diagnostic] API Key present: ${!!apiKey}`);
-  if (apiKey) {
-    console.log(`[Diagnostic] API Key length: ${apiKey.length}`);
-    console.log(`[Diagnostic] API Key starts with: ${apiKey.substring(0, 3)}...`);
-  }
-
   if (!apiKey) {
     return res.status(500).json({ 
-      error: "Gemini API key is missing in the environment. Please ensure GEMINI_API_KEY is set in your environment variables." 
+      error: "Gemini API key is missing. Please use the 'Select API Key' button in the app or ensure GEMINI_API_KEY is set in your environment variables." 
     });
   }
 
@@ -151,19 +144,18 @@ app.post("/api/analyze", async (req, res) => {
       config: { 
         tools: [{ googleSearch: {} }], 
         responseMimeType: "application/json",
-        responseSchema: analysisSchema
+        responseSchema: analysisSchema as any
       },
     });
 
     const text = response.text;
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     const sourceUrls = [...new Set(groundingChunks?.map(c => c.web?.uri).filter(Boolean) as string[])];
-    const analysisData = JSON.parse(text);
+    const analysisData = JSON.parse(text || "{}");
 
     res.json({ data: analysisData, sourceUrls });
   } catch (error: any) {
     console.error('Gemini Analysis Error:', error);
-    // Return the full error message to the frontend for debugging
     res.status(500).json({ 
       error: error.message || "Analysis failed",
       details: error.toString()
@@ -179,7 +171,7 @@ app.post("/api/forecast", async (req, res) => {
 
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "Gemini API key is missing in the environment." });
+    return res.status(500).json({ error: "Gemini API key is missing. Please use the 'Select API Key' button in the app." });
   }
 
   try {
@@ -190,11 +182,11 @@ app.post("/api/forecast", async (req, res) => {
       config: { 
         tools: [{ googleSearch: {} }], 
         responseMimeType: "application/json",
-        responseSchema: forecastSchema
+        responseSchema: forecastSchema as any
       }
     });
     
-    res.json(JSON.parse(response.text));
+    res.json(JSON.parse(response.text || "{}"));
   } catch (error: any) {
     console.error('Gemini Forecast Error:', error);
     res.status(500).json({ error: error.message || "Forecast failed" });

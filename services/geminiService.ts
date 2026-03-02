@@ -42,3 +42,4 @@ export const generateForecast = async (companyName: string): Promise<ForecastRes
     throw error;
   }
 };
+
