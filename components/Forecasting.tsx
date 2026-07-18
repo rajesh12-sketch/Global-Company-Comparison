@@ -12,7 +12,7 @@ const ForecastChart: React.FC<{ data: any[] }> = ({ data }) => {
     if (!data || data.length === 0) return <div className="h-80 w-full flex items-center justify-center text-slate-600">No projections available</div>;
     return (
       <div className="h-80 w-full min-h-[320px]">
-        <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+        <ResponsiveContainer width="100%" height="100%" minHeight={320} minWidth={0}>
           <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
             <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />

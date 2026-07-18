@@ -45,7 +45,7 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({ data, type }) =>
   if (type === 'stock') {
     return (
       <div className="h-72 w-full min-h-[288px]">
-        <ResponsiveContainer width="100%" height="100%" minHeight={288}>
+        <ResponsiveContainer width="100%" height="100%" minHeight={288} minWidth={0}>
           <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
             <XAxis 
@@ -81,7 +81,7 @@ export const FinancialChart: React.FC<FinancialChartProps> = ({ data, type }) =>
 
   return (
     <div className="h-72 w-full min-h-[288px]">
-      <ResponsiveContainer width="100%" height="100%" minHeight={288}>
+      <ResponsiveContainer width="100%" height="100%" minHeight={288} minWidth={0}>
         <BarChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
           <XAxis 
@@ -124,8 +124,8 @@ export const Sparkline: React.FC<{ trend?: 'up' | 'down' | 'stable' }> = ({ tren
   const color = trend === 'up' ? '#34d399' : trend === 'down' ? '#f87171' : '#94a3b8';
 
   return (
-    <div className="h-8 w-24">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-8 w-24 min-h-[32px]">
+      <ResponsiveContainer width="100%" height="100%" minHeight={32} minWidth={0}>
         <LineChart data={data}>
           <Line 
             type="monotone" 
@@ -146,7 +146,7 @@ export const SWOTRadarChart: React.FC<{ data: any[] }> = ({ data }) => {
 
   return (
     <div className="h-64 w-full min-h-[256px]">
-      <ResponsiveContainer width="100%" height="100%" minHeight={256}>
+      <ResponsiveContainer width="100%" height="100%" minHeight={256} minWidth={0}>
         <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
           <PolarGrid stroke="#334155" />
           <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 11 }} />
